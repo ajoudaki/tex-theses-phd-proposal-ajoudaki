@@ -1,0 +1,149 @@
+%% Dokumentenklasse (Koma Script) -----------------------------------------
+\documentclass[%
+   11pt,              % Schriftgroesse
+   english,           % wird an andere Pakete weitergereicht
+   a4paper,           % Seitengroesse
+   DIV12,             % Textbereichsgroesse (siehe Koma Skript Dokumentation !)
+	 parskip=half
+]{scrartcl}%     Klassen: scrartcl, scrreprt, scrbook
+% -------------------------------------------------------------------------
+
+\usepackage[latin1]{inputenc} % Font Encoding, benoetigt fuer Umlaute
+\usepackage[english]{babel}   % Spracheinstellung
+
+\usepackage[T1]{fontenc} % T1 Schrift Encoding
+\usepackage{textcomp}    % Zusatzliche Symbole (Text Companion font extension)
+\usepackage{lmodern}     % Latin Modern Schrift
+
+%% [OPT] Easily changeable quotes with \enquote{Text}
+\usepackage[babel]{csquotes}
+
+%% [NEED] This allows for additional typesetting tools in mathmode.
+%% See its excellent documentation.
+\usepackage{mathtools}
+\usepackage{mathbbol}
+
+
+\usepackage{subcaption}
+
+
+%% [REC] Nicer tables.  Read the excellent documentation.
+\usepackage{booktabs}
+
+%% [CUSTOM LW] Text Color
+\usepackage{color}
+\usepackage[usenames,dvipsnames]{xcolor}
+
+%% [CUSTOM LW] Typesets chemical formulae
+\usepackage[ghsystem=false]{chemmacros}
+
+%% [CUSTOM LW] Enable custom lists
+\usepackage{xstring}
+
+\usepackage[inline]{enumitem}
+
+%% [CUSTOM LW] BibLaTeX
+\usepackage[sorting=none,backend=biber,maxcitenames=1,maxnames=1,firstinits,url=false,isbn=false,eprint=false,doi=false]{biblatex}
+\bibliography{refs}
+
+%% [CUSTOM LW] IEEEeqnarray
+\usepackage[retainorgcmds]{IEEEtrantools}
+
+%% [CUSTOM LW] Subfloats
+\usepackage{subfig} % for subfigures
+\usepackage{caption}
+
+%% [CUSTOM LW] Bold Math
+\usepackage{bm}
+
+%% [CUSTOM LW] Long Tables
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabu}
+
+%% [REC] Fancy character protrusion.  Must be loaded after all fonts.
+\usepackage{microtype}
+
+\usepackage{import}
+
+\usepackage[hidelinks]{hyperref}
+
+\pdfstringdefDisableCommands{%
+  \renewcommand{\color}[2]{#2} % this causes the warning for \kern
+}
+
+%% [CUSTOM LW] Maximum Page Numbers for Research Plan
+\newif\ifMaxPages
+\MaxPagesfalse
+%% \MaxPagestrue
+\newcommand{\onlyIfMaxPages}[1]{\ifMaxPages{\color{red}{#1}}\fi}
+
+%% Section Spacing
+%% \RedeclareSectionCommand[beforeskip=-2.5ex plus -1ex minus -.2ex, afterskip=.1\baselineskip]{section}
+%% \RedeclareSectionCommand[beforeskip=-1.5ex plus -1ex minus -.2ex, afterskip=.1\baselineskip]{subsection}
+\RedeclareSectionCommand[beforeskip=-1.0ex plus -1ex minus -.2ex, afterskip=.0001\baselineskip]{subsubsection}
+%% \RedeclareSectionCommand[beforeskip=.001\baselineskip, afterskip=-1em]{paragraph}
+
+%% Subfigure Layout
+% \captionsetup{labelfont={bf, footnotesize}, textfont=footnotesize}
+\captionsetup[subfigure]{labelfont={large,bf,sf},singlelinecheck=off,justification=raggedright, labelformat=simple, position=top}
+\renewcommand{\thesubfigure}{\Alph{subfigure}}
+\usepackage{macros}
+
+%% Dokument Beginn %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\input{titlePage}
+
+\section{Summary\onlyIfMaxPages{ (max. 1/2 page)}}
+\input{chapters/summary}
+
+\onlyIfMaxPages{\pagebreak}
+\section{Introduction\onlyIfMaxPages{ (min. 1/2 page)}}
+\input{chapters/introduction}
+
+\onlyIfMaxPages{\pagebreak}
+\section{State of the Art\onlyIfMaxPages{ (min. 1 page)}}
+\input{chapters/state_of_the_art}
+
+\onlyIfMaxPages{\pagebreak}
+\section{Goals of Thesis\onlyIfMaxPages{ (min. 1 page)}}\label{sec:goal_of_thesis}
+\input{chapters/goal_of_thesis}
+
+\onlyIfMaxPages{\pagebreak}
+\section{Detailed Work Plan\onlyIfMaxPages{ (min. 1/2 page)}}
+\input{chapters/detailed_work_plan}\label{sec:detailed_work_plan}
+
+\onlyIfMaxPages{\pagebreak}
+\section{Progress to Date\onlyIfMaxPages{ (min. 1/4 page)}}
+\input{chapters/progress_to_date}
+
+% \onlyIfMaxPages{\pagebreak}
+% \section{Schedule\onlyIfMaxPages{ (min. 1/4 page)}}
+% \input{chapters/schedule}
+
+\pagebreak
+\section{References\onlyIfMaxPages{ (max. 1 page)}}
+\input{reference}
+
+% \pagebreak
+% \section{Additional Information}
+% \input{additional_information}
+
+\pagebreak
+\section{Study Plan}
+\input{chapters/study_plan}
+
+\section*{}
+
+\rule{\textwidth}{1pt}\vspace{3em}
+\noindent\begin{tabular}{ll}
+\makebox[2.5in]{\hrulefill} & \makebox[2.5in]{\hrulefill}\\    Ph.D. Candidate & Place, Date\\[8ex]% adds space between the two sets of signatures
+\makebox[2.5in]{\hrulefill} & \makebox[2.5in]{\hrulefill}\\    Supervisor & Place, Date\    \end{tabular}
+
+
+
+%% Dokument ENDE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}
+
+\

@@ -1,0 +1,94 @@
+
+This proposal aims at designing efficient algorithms for large-scale bioinformatics applications. The broad goals are:
+\begin{itemize}
+    \item  \textit{Sketching sequence similarity:} Sketching can be used to estimate similarity, and  for efficient clustering of sequences.
+    \item \textit{Sketch-guided alignment:} Both read to reference alignment, and local alignment of multiple references can benefit from the pre-computed sketches.
+    \item \textit{Syntenic region finding:} A hierarchical sketching method can capture similarity of sequences on a longer range.
+    \item \textit{Multi-scale visualization: } The goal is visualization of sequence graphs constructed for multiple reference genomes, with multiple levels of abstraction.
+    % \item \textit{Sketching-based optimization:} Exploring sketching ideas to make important optimization procedures more efficient. 
+\end{itemize}
+
+
+\subsection{Sketching sequence similarity}
+The main focus in this part is the analysis of sequence data and using sketching methods for 
+\emph{Sequence similarity sketching.} The distance between two genomes involves finding a alignment, that requires $\Ocal(mn)$ time complexity, in which $m$ and $n$ are genome lengths. However, it is possible to estimate the distance in a fraction of the time needed for the exact computation. The goal here is to design and test algorithms that estimate Levenshtein's distance, with quasi-linear time and memory complexity. 
+
+ \emph{Classifying sequences:} The sketch values, both for edit distance and spaced $k$-mers, can be directly used to estimate distances between short sequences, reads, or $k$-mers, to estimate pairwise or group-wise genome distances, comparable to the Jaccard-based similarity estimation in MASH\cite{ondov2016mash}, yet more robust to mutations and sequencing errors. The results can be compared to other alignment-free distance estimation methods, mainly when genomes are not closely related. 
+
+\textit{Spaced $k$-mers} enhance sensitivity of sequence analysis to high mutation rate by masking out a pre-defined subset of positions, sometimes referred to as \emph{don't care} positions. Although this is a more restrictive definition of string similarity, spaced $k$-mers are easier and more practical to implement. One limitation of spaced $k$-mers is that their sensitivity depends on the don't care pattern. This limitation motivates the following question: Is there an encoding which is as good as any $k$-mer pattern? This problem, can be studied as extension and specialization of the original sketch.  
+
+
+\subsection{Sketch-guided alignment}
+While sketching is not an alignment algorithm, it can be combined with alignment methods in order to lower their time complexity. The \emph{seed and extend} strategy for aligning a sequence read to a reference sequence, leads to an exponential growth in time complexity as a function of the number of mismatched characters. In some methods, bounded worst-case performance is achieved by having a bounded search time, at the expense of suboptimality of the alignment. 
+Sketching of sequences into $\ell^1$ or Hamming cube $\{0,1\}^m$ can be used to speed up search for the best seed, using ideas from locality sensitive hashing. 
+The sketch values can be precomputed and be reused for all subsequent computations. If sequences are stored as a de-Brujin graphs, these sketches can be stored as vertex colors, or in a separate hash table.  
+
+
+ 
+
+\subsection{Syntenic region finding}
+\emph{Syntenic regions} are coarsely related regions across two or multiple reference sequences, that contain multiple closely related \emph{syntenic blocks}. 
+Syntenic regions may span few thousand to hundreds of thousands nucleotides. 
+Identifying syntenic regions and blocks is essential for characterization of genomic differences in recently diverged species~\cite{vergara2010large}. 
+Syntenic regions may contain genes are subject to inversions, duplication, or translocation, as well as long, unrelated sequences (gaps).
+Due to these structural variations, finding syntenic regions and aligning syntenic blocks across multiple genomes is challenging.
+
+
+The edit distance can be the similarity metric for syntenic blocks, and the the number of aligned blocks can be used to define syntenic region score. However, 
+The main goal of this part, is to devise a hierarchical sketching scheme on top of the edit distance sketch, such that regions that share multiple similar blocks are given similar sketches. 
+Such a sketch is ideally tolerant to some mismatches in syntenic blocks, and can be combined with sensitive hashing to identify  syntenic regions across multiple regions. 
+
+  
+de-Brujin graphs efficiently identify perfectly conserved recurring $k$-mers in our dataset. However, $k$-mers are too sensitive to mismatches, as well as genes subject to structral variations. Therefore, syntenic region sketches may reveal structural can be used to add extra ``similarity'' edges that indicate a coarse similarity between vertices, namely using a locality sensitive hashing scheme. Therefore, paths representing different genomes, will be joint at vertices designating a shared $k$-mer, and are ``bundled'' together by similarity edges, indicating syntenic region.
+
+
+% Having addressed the computational challenges, help us understand evolutionary relationships that are difficult to capture with more traditional methods. Path bundles constructed on top of the de-Brujin graph can reveal complicated patterns of evolutionary history. As an example, horizontal gene transfer complicates any phylogeny based analysis. A gene may have several ancestors. Conceptualizing, computing, and visualizing these patterns can be an essential step in understanding the role of HGT in the evolution of viruses and bacteria, as well as antibiotic-resistant bacteria. 
+% \end{itemize}
+
+\subsection{Multi-scale, multiple genome visualization}
+
+While visualization is not a scientific problem per se, it can help researchers to gain better insight into structural variations in whole genomes, across multiple species.
+However, visualizing a de-Brujing graph across multiple ``scales'' requires an objective. Any definition of path-bundles or syntenic region, requires the acceptable level of similarity in a region. There will be a natural trade-off between the similarity parameter and the length of a block. Therefore, syntenic regions computed for different similarity values, can be used to visualize the genomes for different scales. 
+An alternative more efficient strategy, is to compute a minimal set of spanning trees that preserve the structure or shortest distances in the graph.
+
+% These trees may also offer an alternative to the phylogeny tree when a single tree is insufficient to capture intricate differences between subgroups. 
+% This problem can be studied in conjunction with path bundles, as they offer an abstraction of de-Brujin graphs on differing levels, e.g., one possibility is to build the trees on top of path-bundles. One must tune the model hyper-parameters to get the desired abstraction. 
+% However, both path bundles and tree spanners, are biologically motivated and not mathematically well defined.  Therefore, this step involves addressing modeling and computational challenges. 
+
+
+
+% \textit{Graph-informed, sequence similarity estimation:}
+% In many applications, one needs to quantify how dis/similar two species or groups of species based on their genome sequences. While the definition of dis/similarity varies from one application to another, traditionally, cheap to compute quantities are used as proxies for the real distance, such as approximate $k$-mer Jaccard distance. Given the non-trivial global and local patterns present in de-Brujin graphs, one can strive for better graph-inspired approaches to similarity. There is a vast literature on properties of biological networks as a starting point, while statistical and machine learning models can be employed to link graph properties. For example, to study if certain network motifs that are only present in a subgroup of specifies, one may use a dictionary of motif counts in graphs to predict the subgroup or subspecies types. The computational complexity remains an important issue, as many quantities are expensive to compute naively. 
+
+% \end{itemize}
+
+
+
+% \subsection{Sketch-based optimization}
+% Sketching and compressive sensing inspired techniques have been successful in lowering the complexity of many important optimization algorithms. That said, there are still many resolved problems and unexplored direction, which is broadly the goal of this section. 
+
+% \begin{itemize}
+%     \item Recent developments show how to sketch rank one efficiently, or super-symmetric tensors, i.e., the permutation of indices will not change the value. These sketches have desirable properties, such as tensor contractions become vector products, and are optimally oblivious norm preserving, making it possible to operate in the low-dimensional space entirely. Furthermore, random-projections translate to FFT and inverse FFT operations, significantly reducing the time complexity. The key ingredient, however, is that these quantities can be computed recursively, which may substantially expand the class of tensors that admit efficient sketching. Given that tensors are versatile objects that are present in many optimization algorithms and machine learning models, any algorithmic improvements for implicitly operating with tensors can trickle down to various applications. 
+
+
+%     \item Kernel methods and random Fourier features as their low dimensional counterparts have been influential in continuous optimization techniques in the past. Technical differences aside, the promise of looking at the problem in the high dimension is that it becomes more tractable/separable/decomposable. We propose to pursue this approach for combinatorial problems, while an analog to random Fourier features will avoid the full cost of solving the high-dimensional problem. The tensor sketching method developed in the previous step is the first step towards efficient approximation algorithms for \begin{enumerate*} \item counting common subsequences of a certain length \item count induced cliques of a constant size \end{enumerate*}
+%     While these algorithms may not beat the state-of-the-art methods, they have the advantage of being more generic and are much more versatile. For example, modifying the algorithm to have gap and mismatch penalties will be trivial in this setting, while in general, this is a non-trivial problem. 
+    
+    
+%     \item While compressive sensing inspired methods are successfully applied to lower the complexity of optimization algorithms, less research has focused on their statistical properties.  For example, lowering the input dimensionality in effect shrinks the number of parameters. While technically simple, this may give a fundamentally different insight about randomized dimensionality reduction, in that they simultaneously lower the complexity and regularize the model. One may strive to implement various regularization types, by random projections or sub-sampling methods. 
+    
+%     \item Multivariate polynomials are able to approximate complicated functions with only a few parameters. Equipped with ordinary differential equations, they are known to describe the behavior of many dynamical systems. Sparsity constraints successfully prevent overfitting~\cite{brunton2016discovering}. The problem, however, is that the complexity of all these methods grows exponentially with the degree of the polynomial, rendering it inapplicable for datasets with thousands of variable and real-time applications that expecting the results in a matter of seconds. Sparse polynomial regression, relaxed to $\ell^1$, can be computed in time polynomial as a function of the maximum degree.
+    
+    
+%     \item As an extension to the previous step, one does need to restrict the class to polynomials. In a similar spirit to dictionary learning, one can introduce more types of features, but enforce sparsity to avoid over-fitting, say with $\ell^1$ relaxation. The in-sample error rate of this model grows logarithmically with the number of features, and the exponential requires a polynomial number of samples to fit. As a potential application, the governing equations of many dynamical systems are known to have only a few terms, and with sufficient data, the parameter and structure search is feasible. We aim to drive down the time complexity while keeping the advantages. 
+    
+%     \item Both methods above can be alternatively seen as a neural network. For example, polynomial regression relates closely to sum-product networks, albeit with a different learning scheme. Therefore, if the sketching-based learning algorithm proposed, does so with theoretical guarantees, it would be a step towards building robust neural network models, and shed light on the conditions under which the model works. 
+    
+    
+%     \item Network abstractions are ubiquitous in computational biology, protein-protein interaction, gene co-expression, and gene regulatory networks. More broadly, networks are powerful tools to explain the interaction between observed and unobserved variables. The main challenge, however, is that we do not know the structure of the network in advance, simultaneously presenting a modeling and computational problem. The modeling problem is due to noise and scarcity of data, which, combined with exponential search space for structure, leads to overfitting. This problem is more pronounced when considering interactions between more than two variables and allowing different types of interaction. In structural inference modeling involving fitting differential equation parameters, a similar approach to sparse polynomial regression can be adopted to lower the complexity. 
+    
+%       \item \textit{Motif finding in networks:} Although conceptually different, from a combinatorial perspective, network motifs are graph counterparts to \emph{common subsequence} on strings. Therefore, the tools developed for the former can be applied to compute or estimate network motifs of an arbitrary pattern. The goal is to answer queries of type: how many cliques of size five $K_5$, does it contain as induced sub-graphs? Queries can be paired with metadata, such as vertex or edge colors. Given the streaming paradigm, the algorithm must have strictly sub-linear memory complexity, and it is given a single pass over edge insertion and deletions. The approximation is acceptable in many scenarios, as the real data contains inherent noise and other types of noise. 
+
+    
+    
+% \end{itemize}
