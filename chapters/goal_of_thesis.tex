@@ -1,28 +1,24 @@
 
-This proposal aims at designing efficient algorithms for large-scale bioinformatics applications. The broad goals are:
+This proposal aims at designing efficient algorithms for large-scale bioinformatics applications. The main aims are:
 \begin{itemize}
-    \item  \textit{Sketching sequence similarity:} Sketching can be used to estimate similarity, and  for efficient clustering of sequences.
-    \item \textit{Sketch-guided alignment:} Both read to reference alignment, and local alignment of multiple references can benefit from the pre-computed sketches.
-    \item \textit{Syntenic region finding:} A hierarchical sketching method can capture similarity of sequences on a longer range.
-    \item \textit{Multi-scale visualization: } The goal is visualization of sequence graphs constructed for multiple reference genomes, with multiple levels of abstraction.
+    \item  \textit{Sketching sequence similarity:} Devise a sketching scheme for sequence similarity with a quasi-linear time complexity. 
+    \item \textit{Phylogeny construction:} Developing a sketch-based phylogeny reconstruction that are sub-quadratic both in sequence length, and number of sequences in the database. 
+    \item \textit{Sketch-guided alignment:} Develop a seed-and-extend alignment procedure that uses sketches, as opposed to exact substring matches, for finding seeds, and thereby improve the performance for distant genomes. 
+    \item \textit{Syntenic region finding:} Develop a sketching method that can capture similarity of sequences on a longer range, representing synthetic regions or blocks. 
+    % \item \textit{Multi-scale visualization: } The goal is visualization of sequence graphs constructed for multiple reference genomes, with multiple levels of abstraction.
     % \item \textit{Sketching-based optimization:} Exploring sketching ideas to make important optimization procedures more efficient. 
 \end{itemize}
 
 
 \subsection{Sketching sequence similarity}
-The main focus in this part is the analysis of sequence data and using sketching methods for 
-\emph{Sequence similarity sketching.} The distance between two genomes involves finding a alignment, that requires $\Ocal(mn)$ time complexity, in which $m$ and $n$ are genome lengths. However, it is possible to estimate the distance in a fraction of the time needed for the exact computation. The goal here is to design and test algorithms that estimate Levenshtein's distance, with quasi-linear time and memory complexity. 
+Computing the exact evolutionary distance between two genomes involves finding an alignment, that requires $\Ocal(mn)$ time, in which $m$ and $n$ are genome lengths. However, it is possible to estimate the distance in a fraction of the time needed for the exact computation. The goal here is to design and test algorithms that estimate Levenshtein's distance, with quasi-linear time and memory complexity. Crucially, we set out to exceed the performance of $k$-mer or spaced $k$-mer sketching, by making the sketching tolerant to a higher rate and types of mutation.  Finally, synthetic sequences will be used to compare the developed sketching schemes against the current state-of-the-art of min-hashing based methods. 
 
- \emph{Classifying sequences:} The sketch values, both for edit distance and spaced $k$-mers, can be directly used to estimate distances between short sequences, reads, or $k$-mers, to estimate pairwise or group-wise genome distances, comparable to the Jaccard-based similarity estimation in MASH\cite{ondov2016mash}, yet more robust to mutations and sequencing errors. The results can be compared to other alignment-free distance estimation methods, mainly when genomes are not closely related. 
+% \textit{Spaced $k$-mers} enhance sensitivity of sequence analysis to high mutation rate by masking out a pre-defined subset of positions, sometimes referred to as \emph{don't care} positions. Although this is a more restrictive definition of string similarity, spaced $k$-mers are easier and more practical to implement. One limitation of spaced $k$-mers is that their sensitivity depends on the don't care pattern. This limitation motivates the following question: Is there an encoding which is as good as any $k$-mer pattern? This problem, can be studied as extension and specialization of the original sketch.  
 
-\textit{Spaced $k$-mers} enhance sensitivity of sequence analysis to high mutation rate by masking out a pre-defined subset of positions, sometimes referred to as \emph{don't care} positions. Although this is a more restrictive definition of string similarity, spaced $k$-mers are easier and more practical to implement. One limitation of spaced $k$-mers is that their sensitivity depends on the don't care pattern. This limitation motivates the following question: Is there an encoding which is as good as any $k$-mer pattern? This problem, can be studied as extension and specialization of the original sketch.  
-
+\subsection{Phylogeny construction} The sketch-based distances can be used to estimate distances between whole-genomes, raw sequence reads, and distance between groups of sequences. We set out to leverage strengths of our sketching methods to estimate the distance matrix that will be used for phylogeny reconstruction. An important objective of this part is to remove the quadratic dependency on the number of sequences. This will be implemented by initially sketching the sequence distance, followed by sub-quadratic clustering methods tailored for $\ell^p$ spaces. Finally, results of sketch-based phylogeny will be compared to current tools for phylogeny. 
 
 \subsection{Sketch-guided alignment}
-While sketching is not an alignment algorithm, it can be combined with alignment methods in order to lower their time complexity. The \emph{seed and extend} strategy for aligning a sequence read to a reference sequence, leads to an exponential growth in time complexity as a function of the number of mismatched characters. In some methods, bounded worst-case performance is achieved by having a bounded search time, at the expense of suboptimality of the alignment. 
-Sketching of sequences into $\ell^1$ or Hamming cube $\{0,1\}^m$ can be used to speed up search for the best seed, using ideas from locality sensitive hashing. 
-The sketch values can be precomputed and be reused for all subsequent computations. If sequences are stored as a de-Brujin graphs, these sketches can be stored as vertex colors, or in a separate hash table.  
-
+Sketching can operate in conjunction with some alignment algorithms in order to lower their time complexity. Many aligners use exact short matches, referred to as \emph{seeds}, to be later \emph{extended} by the aligner. While exact seeds are efficient to find, in presence of a high level of mutation, exact seeds are either unspecific, or insensitive. On the other hand, relaxing the search to inexact seeds introduces an exponential growth in time with respect to the number of mismatched characters. Therefore, we aim at avoiding this exponential cost of inexact seed finding, by using ideas from locality sensitive hashing on top of discretized sketches. Finally, by storing discretized sketches in succinct structures, we can operate on datasets with billions of characters, namely for phylogeny reconstruction. By leveraging our sketching scheme, we set set out to improve the time-accuracy trade-off when compared with current alignment tools, in particular in presence of a high mutation rate.  
 
  
 
@@ -30,26 +26,21 @@ The sketch values can be precomputed and be reused for all subsequent computatio
 \emph{Syntenic regions} are coarsely related regions across two or multiple reference sequences, that contain multiple closely related \emph{syntenic blocks}. 
 Syntenic regions may span few thousand to hundreds of thousands nucleotides. 
 Identifying syntenic regions and blocks is essential for characterization of genomic differences in recently diverged species~\cite{vergara2010large}. 
-Syntenic regions may contain genes are subject to inversions, duplication, or translocation, as well as long, unrelated sequences (gaps).
-Due to these structural variations, finding syntenic regions and aligning syntenic blocks across multiple genomes is challenging.
-
-
-The edit distance can be the similarity metric for syntenic blocks, and the the number of aligned blocks can be used to define syntenic region score. However, 
-The main goal of this part, is to devise a hierarchical sketching scheme on top of the edit distance sketch, such that regions that share multiple similar blocks are given similar sketches. 
-Such a sketch is ideally tolerant to some mismatches in syntenic blocks, and can be combined with sensitive hashing to identify  syntenic regions across multiple regions. 
+Syntenic regions may contain genes subject to inversions, duplication, or translocation, as well as long, unrelated sequences (gaps). Since finding syntenic regions and aligning syntenic blocks across multiple genomes is computationally challenging, the main goal of this part is to devise sketching schemes that identify syntenic blocks and regions. 
+Such a sketch ideally is tolerant to some mismatches in syntenic blocks, and can be combined with sensitive hashing to identify  syntenic regions across multiple regions. 
 
   
-de-Brujin graphs efficiently identify perfectly conserved recurring $k$-mers in our dataset. However, $k$-mers are too sensitive to mismatches, as well as genes subject to structral variations. Therefore, syntenic region sketches may reveal structural can be used to add extra ``similarity'' edges that indicate a coarse similarity between vertices, namely using a locality sensitive hashing scheme. Therefore, paths representing different genomes, will be joint at vertices designating a shared $k$-mer, and are ``bundled'' together by similarity edges, indicating syntenic region.
+% de-Brujin graphs efficiently identify perfectly conserved recurring $k$-mers in our dataset. However, $k$-mers are too sensitive to mismatches, as well as genes subject to structral variations. Therefore, syntenic region sketches may reveal structural can be used to add extra ``similarity'' edges that indicate a coarse similarity between vertices, namely using a locality sensitive hashing scheme. Therefore, paths representing different genomes, will be joint at vertices designating a shared $k$-mer, and are ``bundled'' together by similarity edges, indicating syntenic region.
 
 
 % Having addressed the computational challenges, help us understand evolutionary relationships that are difficult to capture with more traditional methods. Path bundles constructed on top of the de-Brujin graph can reveal complicated patterns of evolutionary history. As an example, horizontal gene transfer complicates any phylogeny based analysis. A gene may have several ancestors. Conceptualizing, computing, and visualizing these patterns can be an essential step in understanding the role of HGT in the evolution of viruses and bacteria, as well as antibiotic-resistant bacteria. 
 % \end{itemize}
 
-\subsection{Multi-scale, multiple genome visualization}
+% \subsection{Multi-scale, multiple genome visualization}
 
-While visualization is not a scientific problem per se, it can help researchers to gain better insight into structural variations in whole genomes, across multiple species.
-However, visualizing a de-Brujing graph across multiple ``scales'' requires an objective. Any definition of path-bundles or syntenic region, requires the acceptable level of similarity in a region. There will be a natural trade-off between the similarity parameter and the length of a block. Therefore, syntenic regions computed for different similarity values, can be used to visualize the genomes for different scales. 
-An alternative more efficient strategy, is to compute a minimal set of spanning trees that preserve the structure or shortest distances in the graph.
+% While visualization is not a scientific problem per se, it can help researchers to gain better insight into structural variations in whole genomes, across multiple species.
+% However, visualizing a de-Brujing graph across multiple ``scales'' requires an objective. Any definition of path-bundles or syntenic region, requires the acceptable level of similarity in a region. There will be a natural trade-off between the similarity parameter and the length of a block. Therefore, syntenic regions computed for different similarity values, can be used to visualize the genomes for different scales. 
+% An alternative more efficient strategy, is to compute a minimal set of spanning trees that preserve the structure or shortest distances in the graph.
 
 % These trees may also offer an alternative to the phylogeny tree when a single tree is insufficient to capture intricate differences between subgroups. 
 % This problem can be studied in conjunction with path bundles, as they offer an abstraction of de-Brujin graphs on differing levels, e.g., one possibility is to build the trees on top of path-bundles. One must tune the model hyper-parameters to get the desired abstraction. 

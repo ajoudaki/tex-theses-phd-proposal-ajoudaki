@@ -1,96 +1,84 @@
 
 
 \subsection{WP1: sequence similarity sketching}
-In this working package, the main objective is to sketch string similarity and output a concise binary string, such that the hamming-distance would gracefully increase as the strings become more dissimilar. Let metric $\D \colon \abcstr\times \abcstr\to R^{\ge 0}$ denote a string metric of interest, namely the edit distance. We look for a sketching function $\Sk\colon \abcstr\to\Set{0,1}^m$, such that for arbitrary strings $x,y\in \abcstr$, $\D(x,y)\approx \HD(\Sk(x),\Sk(y))$, in which $\HD$ stands for the \emph{Hamming distance} $\HD(x,y):=\#\{i\colon x_i\neq y_i\}$. One way to quantify the approximation is via \emph{distortion factor $\alpha>0$}, which informally means that the sketch-based estimate of distance is within a multiplicative $\alpha$-factor of the true distance. 
-Formally, $\varphi$ has distortion $\alpha$, if there exists absolute constant $c$, such that for arbitrary strings $x,y\in S$, and distance threshold $t\in\RR^{\ge 0}$, there exists $t'\in\RR^{\ge 0}$ such that: 
-\begin{equation}
+In this package, the main objective is to design a randomized sketching that maps the sequences onto Euclidean space. 
+Let $x,y\in \abc^\star$ be two sequences. Let $\Phi\colon \abc^\star\to \RR^m$ be the sketching function, for which there exists similarity thresholds $s_1< s_2$ and $t_1 < t_2$, and failure probabilities $c_1,c_2\in(0,1)$, such that the inner product preserves the order between $s_1$-dissimilar and $s_2$-similar sequences 
+\begin{align}
 \label{eq:sk_approx_factor}
-\begin{cases} 
-\Prob{\HD(\varphi(x),\varphi(y))> t'}\ge 1-\E^{-c \; m},& \text{if }  \D(x,y)>\alpha t\\
-\Prob{\HD(\varphi(x),\varphi(y))\le t'}\ge 1-\E^{c \; m}, & \text{if } \D(x,y)\le t.
-\end{cases}
-\end{equation}
-We can interpret \eqref{eq:sk_approx_factor} as the distortion $\alpha$ determines how much the distances can be expanded spuriously due to the sketching. 
-Although the definition given here treats distortion as a constant, it is not always achievable, and $\alpha$ may depend on distance threshold $t$, sequence length $|x|,|y|$, or other parameters: $\alpha(t,|x|,|y|)$. \emph{Optimal sketching} implies that $\Sk$ achieves $\alpha=\Ocal(1)$-distortion using constant sized sketch $m=\Ocal(1)$.  
+\Prob{\ip{\Phi(x)}{\Phi(y)} > t_1 }\le c_1, && \text{if } \LCS(x,y)< s_1 \\
+\Prob{\ip{\Phi(x)}{\Phi(y)} < t_2 }\le c_2, && \text{if } \LCS(x,y)>s_2, 
+\end{align}
+where $\LCS(x,y)$ denotes the length of the longest common subsequence between $x$ and $y$.
+While sketching $k$-mers by min-hashing has been studied extensively in the bioinformatics literature, de-Brujin sequences prove that $k$-mers cannot be used to derive bounds like equation~\eqref{eq:sk_approx_factor}. This motivates us to go beyond the local structures captured by $k$-mers and consider the global order of characters instead. Formally, for sequence $x\in \abc^\star$ and subsequence $a\in \abc^t$, define $T_x(a)$ as frequency sub-sequence $a$ in $x$ 
+\begin{align}
+ T_x(a):=\frac{1}{\binom{|x|}{t}}\#\Set{(i_1,\dots,i_t)\in[|x|]^t: x_{i_1}\dots x_{i_t}=a, 1\le i_1<\dots<i_t\le |x|}.
+\end{align}
+It is evident that the size of $T_x(a)$ grows as $| \abc|^t$. In order to avoid the exponential dependency on $t$, we can lower the dimension of $T_x$ by random projections. Let $s_1,\dots, s_t\colon \abc\to\Set{-1,1}$ be random sign functions and define sketch $\phi(T_x)=\sum_{a\in \abc^t} T_x(a)\prod_j^t s_j(a_j)$. Finally, let $\phi_1, \dots, \phi_m$ be $m$ independent copies of $\phi$, and define the sketching function as $\Phi(x):=1/\sqrt{m}(\phi_i(T_x))_{i\in[m]}$. 
+
+Crucially, the sketching preserves inner product in expectation $\EE_\Phi \ip{\Phi(x)}{\Phi(y)} = \ip{T_x}{T_y}$ and the variance vanishes with more sketching dimensions $Var_\Phi \ip{\Phi(x)}{\Phi(y)}\propto 1/\sqrt{m}$, implying a space-accuracy trade-off. Furthermore, due to the low-rank design of the random hash functions, the sketching step $\Phi$ can be done implicitly, avoiding the exponentially large ambient space at all times. 
+
+\paragraph{Deliverables}
+\begin{itemize}
+\item A publication describing the method for string edit distance sketching. 
+\item An efficient implementation of the sketching method, plus experiments on some real-world genome datasets.
+\end{itemize}
 
 
-\subsubsection*{Sequence clustering}
-One application for string sketching, is to cluster a large number of sequences, namely raw sequence reads, or metagenomic sequences. 
-Let $S:=\Set{(s_i,g_i)}_{i\le N}$ be the list of $N$ sequences $s_i\in \abcstr$, along with their respective taxonomy code $g_i\in G$, and $S_g$ denotes the sequences belonging to $g$ $S_g:=\Set{s_i\colon g_i=g}$ The task is to estimate pairwise similarities between groups. Let us assume we interested in inter-group similarity $\Jacc_t(g,g')$ defined as number of sequences between groups $g,g'\in G$ that are $t$-close:
-\[
-\Jacc_t(g,g'):= \#\Set{(s_i,s_j)\in S_g\times S_{g'}\colon \D(s_i,s_j)\le t},  \qquad \norm{\Jacc_t}_1=\sum_{\Set{g,g'}\subseteq G} \Jacc_t(g,g')
-\]
-Definition for $J_t$ can be interpreted as soft-Jaccard similarity, as it allows for distance up to $t$ to be incorporated in similarity. If $\D(x,y)$ is the edit distance, the naive approach requires $\binom{N}{2}$ calls to the distance function $\D(x,y)$, which is prohibitive in both $N$ and length of the sequences $|x|,|y|$. Our goal to make the number of distance calls dependent on number of $t$-similar sequences, which can be substantially smaller $\norm{\Jacc_t}_1\ll N^2$. Instead, we pre-compute sketches $H:=\Set{(s_i,g_i,h_i), h_i=\Sk(s_i)}$. Due to the decay rate $\E^{-c m}$ in \eqref{eq:sk_approx_factor}, using $m:=\Ocal(\log(N))$ sized sketch suffices to have the property for for all pairs $s_i,s_j\in S$ simultaneously. Therefore, single-bit match probability $p_1$, for $t$-similar pairs, versus match probability $p_2$, for $\alpha t$-dissimilar string pairs:
-\begin{equation}
+\subsection{WP 2: Phylogeny reconstruction}
+The main focus of this work package is to develop a sub-quadratic sequence clustering algorithm based on our sketching scheme. Finding similar sequences is typically the most expensive step in phylogeny reconstruction. Therefore, ideas presented in this section can be exploited to reduce the complexity of phylogeny reconstruction, by avoiding the quadratic dependency on the number of sequences. 
+
+Let $\Set{(x_i,g_i)}_{i\le N}$ be the list of $N$ sequences $x_i$, and their respective groups $g_i$. Furthermore, let us assume that similarity within each group is above $s_2$, i.e., $\LCS(x_i,x_j)\ge s_2, g_i=g_j$, while inter-group similarity is below $s_1$, i.e., $\LCS(x_i, x_j)\le s_1, g_i \neq g_j$, with $s_1 < s_2$ as constants. The task is to group sequences in an unsupervised fashion, which would be trivial by pairwise computation. However, we set out to avoid the quadratic dependency on $N$, by using discretized sketches. 
+
+First, let $\phi_i(T_x)$s be tensor sketching functions as defined in work package 1, and define $\Phi'(x):=(\1\Set{\phi_i(T_x)}\ge 0)_{i\in [m]}$ to map the sketches onto binary hypercube $\Set{0,1}^m$. Furthermore, given sketches $h_i:=\Phi'(x_i)$, the bit-wise match probability between sketches $h_i$ and $h_j$ is equal to $\frac{1}{m}\ip{h_i}{h_j}$. Let $p_1$ ($p_2$) to the maximum (minimum) value of $\frac{1}{m}\ip{h_i}{h_j}$ for all pairs that belong to different groups $g_i\neq g_j$ (same group $g_i = g_j$):
+\begin{align}
 \label{eq:bit_match_prob}
-p_1=\min_{i\neq j}\Set{1-\frac{1}{m}\HD(h_i,h_j)\colon  \D(s_i,s_j)\le t},
-p_2=\max_{i\neq j}\Set {1-\frac{1}{m}\HD(h_i,h_j) \colon \D(s_i,s_j)\ge \alpha t},
-\end{equation}
-A consequence of having \eqref{eq:sk_approx_factor} for all pairs is that $p_1>p_2$ with high probability. 
-Using random bit-sampling, we can amplify the ratio $\frac{p_1}{p_2}$. We construct $L$ blocks, $I_1,\dots,I_L$, each of size $\ell$. To construct $I_j=\{i_1,\dots, i_\ell\}$ select each bit \iid and \uar from the set of all bits: $i_1,\dots,i_\ell\sim\Unif[m]$. Let $h_{i|I_j}$ denote the $I_j$-induced sub-sketch $h_{i|I_j}:=h_i[i_1] h_i[i_2] \dots h_i[i_\ell]$. Using the bit-collision probabilities \eqref{eq:bit_match_prob}, we can calculate the block collision probabilities.  
-For all $k\in[L],i,j\in[N]$, we have:
-\begin{align*}
-&\Prob{h_{i|I_k}= h_{j|I_k}}\ge 1-(1-p_1^\ell)^L=:P_1 &&\D(s_i,s_j)\le t  \\
-&\Prob{h_{i|I_k}= h_{j|I_k}}\le 1-(1-p_2^\ell)^L=:P_2 &&\D(s_i,s_j)\ge \alpha t 
-\end{align*}
-With some calculation, it can be shown that for $L=c N^\rho, \ell=\log(N)$, in which $\rho:=\frac{\log(1/p_1)}{\log(1/p_2)}<1$, we achieve $(1-P_1)\lesssim \E^{-c}$, and $P_2\lesssim 1/N^2$ (for more details see~\cite{datar2004locality}).
-Based on these observations, let collision set $H(g,g')$ be defined as:
-\[
-H(g,g'):=\Set{(s_i,s_j)\in S_g\times S_{g'}\colon \exists k\; h_{i|I_k}= h_{j|I_k}},
-\]
-which we can sweep over, and decide which pairs are $t$-close 
-\[
-\tilde\Jacc_t(g,g'):=\# \Set{(s,s')\in H(g,g')\colon \D(s,s')\le t }.
-\]
-Ten, with high probability
-\[
-(1-\E^{-c}) \Jacc_t (g,g') \le \tilde\Jacc_t(g,g') \le \Jacc_t (g,g'), \qquad \forall g,g'\in G,
-\]
-requiring at most $\norm{\Jacc_{\alpha t}}_1$ distance calculations, can be substantially smaller than pairwise distance calls $\norm{\Jacc_{\alpha t}}_1\ll N^2$. 
+% \begin{cases}
+p_1=\max_{i\neq j}\Set{\frac{1}{m}\ip{h_i}{h_j}\colon g_i \neq g_j},&&
+p_2=\min_{i\neq j}\Set {\frac{1}{m}\ip{h_i}{h_j} \colon g_i = g_j }.
+% \end{cases}
+\end{align}
+By boosting the success probability, a sketch size $m:=\Ocal(\log(N))$ suffices for property \eqref{eq:sk_approx_factor} to hold for all $s_i,s_j$ simultaneously, ensuring that $p_1 < p_2$. 
+Using random bit-sampling, we can amplify the ratio $\frac{p_1}{p_2}$. We construct $B$ blocks, $I_1,\dots,I_B$, each of size $b$. To construct $I_j=\{i_1,\dots, i_b\}$ select each bit \iid and \uar from the set of all bits: $i_1,\dots,i_b\sim\Unif[m]$. Let $h_{i|I_j}$ denote the $I_j$-induced sub-sketch $h_{i|I_j}:=h_i[i_1] h_i[i_2] \dots h_i[i_b]$. Using the bit-collision probabilities \eqref{eq:bit_match_prob}, we can calculate the block collision probabilities. 
+For all $k\in[B],i,j\in[N]$, we have:
+\begin{align}
+&\Prob{\vee_{k=1}^B\ h_{i|I_k}= h_{j|I_k}}\le 1-(1-p_1^b)^B=:P_1 && g_i \neq g_j \\
+&\Prob{\vee_{k=1}^B\ h_{i|I_k}= h_{j|I_k}}\ge 1-(1-p_2^b)^B=:P_2 && g_i = g_j 
+\end{align}
+With some calculation, it can be shown that for $B:=c N^\rho, b=\frac{\log(N)}{\log(1/p_1)}$, in which $\rho:=\frac{\log(1/p_2)}{\log(1/p_1)}$, we achieve $P_2\gtrsim 1-\E^{-c}$, and $P_1\lesssim c N^{-1+\rho}$ (for more details see~\cite{datar2004locality}). Based on these observations, if we iterate over all matching sketches we can find $1-e^{-c}$ of inner-group matches, while there are  $P_1\binom{N}{2} = \Ocal(N^{1+\rho})$ mismatches. Since we have $\rho<1$, the overall cost remains sub-quadratic $\Ocal(N^{1+\rho}\log(N))$. 
+
+
 
 
 
 \paragraph{Deliverables}
 \begin{itemize}
-\item A publication describing the method for string edit distance sketching, as well as specialized cases for gapped Hamming and shifted Hamming distance. 
-\item An efficient implementation of the sketching method, plus experiments on some real-world genome datasets.
+\item A publication detailing tensor sketching application for phylogeny reconstruction and its comparison to state of the art methods. 
 \end{itemize}
 
-\newcommand{\AlgG}{\mathcal{A}_G}
-\newcommand{\AlgL}{\mathcal{A}_L}
-\newcommand{\AlgLG}{\mathcal{A}_{LG}}
-\newcommand{\AlgGL}{\mathcal{A}_{GL}}
 
-\subsection{WP 2: Sketch-based alignment}
-The sketching framework which we developed on in the last working package, can be used to guide read to sequence alignment. Let us introduce some notation in order to define an alignment. Let $X,Y\subseteq \NN^{+}$ denote index sets, and $X_0:=X\cup\Set{0}, Y_0:=Y\cup\Set{0}$ append them with $0$. The precedence relation $\prec$ is defined as 
-\[
-(x_0,y_0)\prec(x_1,y_1) \iff ( x_0<x_1\wedge y_0<y_1) \vee (x_0<x_1 \wedge y_1=0) \vee (y_0<y_1 \wedge x_2=0)
-\]
-Alignment family $\Align(X,Y)$ is defined as set of all binary relations $\pi\subseteq X_0\times Y_0$, such that $\prec$ imposes a strict total order over $\pi$, and domain and co-domain of $\pi$ contain $X$ and $Y$ respectively. Alignment executions $\pi_1,\pi_2$ are defined as $\pi_1:=i_1,i_2,\dots,i_{\pi}$ and $\pi_2:=j_1,j_2,\dots,j_{|\pi|}$, where $(i_1,j_1)\prec (i_2,j_2)\prec \dots \prec (i_{|\pi|},j_{|\pi|})$ are members of $\pi$. 
+\subsection{WP 3: Sketch-based alignment}
+Based on the framework which we developed in the first two work packages, we can guide an alignment algorithm to achieve a better time-accuracy trade-off. Let us assume that the task is to find the nearest neighbors to a query sequence among reference sequences, ranked according to their edit distances. This nearest neighbor search can be viewed as an abstraction of read to genome alignment, with reference sequences representing $k$-mers of a genome, and query being a raw sequence read. Furthermore, the problem can be viewed as seed finding for seed and extend algorithms, with the query sequence representing substring of a second genome. 
 
-For arbitrary strings $s,r\in\abcstr$, and $\pi\in\Align([|s|],[|r|])=:\Acal(s,r)$ define sequence executions as $s_{|\pi_1}:=(s[i_k])_{i_k\in \pi_1}$ and $r_{|\pi_2}:=(r[j_k])_{j_k\in \pi_2}$, where it is assumed $r[0],s[0]:=\veps$. Finally, we can define the optimal alignment:
-\begin{equation}
-\label{eq:optimal_alignment}
-    \pi^\star(s,r) = \argmax_{\pi\in\Align(s,r)} f(s_{|\pi_1},r_{|\pi_2}).
-\end{equation}
-The alignment score $f(s_{|\pi_1},r_{|\pi_2})$, typically can be written as a function of the mismatch matrix $f(s_{|\pi_1},r_{|\pi_2})=\sum_{k=1}^{|\pi|} m(s[i_k],r[j_k])$, where $m:\abc_\veps^2\to\RR$ determines the penalty for gaps and mismatches. 
+
+Let $x \in \abc^\star, y\in \abc^\star$ be two sequences to be aligned. Let $\Lcal(x,y)$ denote the longest common subsequence $\Lcal(x,y):=\Set{(i_1,j_1),\dots,(i_\ell,j_\ell)}$, where indices satisfy $x_{i_1}\dots x_{i_\ell} =y_{j_1}\dots y_{j_\ell}$, and $\ell:=\LCS(x,y)$ denotes the maximum possible length. Furthermore, indices must be strictly increasing $1\le i_1<\dots<i_\ell\le |x|$ and $1\le j_1<\dots<j_\ell\le |y|$. 
 
 \subsubsection*{Guiding alignment}
-It is straightforward to see that the optimal global alignment \eqref{eq:optimal_alignment}, corresponds to the edit distance if we set the $m(a,b)\gets -\1[a\neq b]$, which has a dynamic programming solution running in $\Ocal(|s||r|)$. This is considered inefficient if the query $s$ is significantly shorter than the reference $r$. If we can find the optimal starting position on the reference sequence, the complexity will be lowered to $\Ocal(|s|^2)$, since the distance cannot exceed $|s|$. 
+Since computing optimal global alignment has a quadratic time complexity $\Ocal(|x||y|)$, it is considered inefficient if the query and references are millions of base-pairs long. However, one can reduce the time by restricting search space for alignment pairs. Some alignment tools break query and reference into $k$-mers, and use $k$-mer matches as seeds. Exact $k$-mer matching can be implemented efficiently using hash tables. However, the value of $k$ has to be sufficiently small to have a high chance of a match, and sufficiently big to avoid too many matches by chance. 
+We propose sketch-matches as opposed to $k$-mer matches to be used as seed locations. Let $X_i:=x_i\dots x_{i+k-1}$ and $Y_i:=y_i\dots y_{i+k-1}$ denote $k$-mers of $x$ and $y$ respectively. Note that for most alignment pairs $(i,j)\in \Lcal(x,y)$, the corresponding $k$-mers $X_i,Y_j$ are likely to have a high degree of similarity $\LCS(X_i,Y_j)\ge s_2 k$, while for most of non-alignment pairs $(i,j)\notin \Lcal(x,y)$, the similarity must be lower $\LCS(X_i,Y_j)\le s_1 k$:
+\begin{align}
+ &(i,j)\sim \Lcal(x,y) \implies \Pr(\LCS(X_i,Y_j)\ge s_2 k) \ge c_1 \\
+ &(i,j)\sim \overline{\Lcal(x,y)} \implies \Pr(\LCS(x,y)\ge s_1 k ) \le c_2,
+\end{align}
+where score thresholds $0< s_1 < s_2<1$ that depend on probabilities $0<c_1,c_2<1$ and value for $k$. 
+Furthermore, we assume that sketching $\Phi: \abc^k\to\RR^m$ preserves the similarity order between $s_2$-similar $k$-mers $x,y\in \abc^k$ and $s_1$-dissimilar $k$-mers $x',y'\in \abc^k$, with constant probability
+\begin{align}
+ \LCS(x,y)\ge s_2 k,\LCS(x,y)\le s_1 k \implies \Pr\left(\|\Phi(x)-\Phi(y)\|_2\le \|\Phi(x')-\Phi(y')\|_2\right)\ge C,
+\end{align}
+where $0<C<1$ depends on constants $s_1,s_2$, as well as the accuracy of sketching function $\Phi$.
+% In other words, the probability that an a random alignment pair will be closer than a random non-alignment pair after sketching will be at least $C$. 
+If we restrict the search for alignment pairs to the neighbors of all $k$-mers $X_i$s and $Y_j$ based on distances $\|\Phi(X_i)-\Phi(Y_j)\|_2$, most alignment pairs will be found, while most non-alignment pairs will be excluded. The resulting candidate indices can be viewed as seed locations. 
 
-Many alignment procedures, break the query and reference into $k$-mers as pre-processing steps in order to estimate the . For $d$-mismatches, at most $d(k-1)$ $k$-mers are touched by mismatching characters, and $|q|-(d+1)(k-1)$ are unaffected. These $k$-mers can act as anchors, where we base our alignment algorithm on. The advantage of these methods is $k$-mer exact matching can be implemented efficiently using a hash-map. The challenge is that if $k$ is too small, there will be instances of each $k$-mer, and it is not trivial how to choose the anchor, while a big $k$ risks having no untouched $k$-mer $|q|-(d+1)(k-1)\le 0$.
-
-We propose sketch-match as opposed to $k$-mer match to be used as anchors. Let $\Set{(s_i)}_{i\le N}$ and $\Set{(r_i)}_{i\le M}$ denote $k$-mers of $s$ and $r$ respectively. Define the pair $(s_i,r_j)$ is an anchor if  $d(s_i,r_j)\le t$, which relaxes the definition to have $t$ mismatches. Therefore, we can use the same techniques outlined in the previous working package, in order to achieve sub-linear search time. 
-
-
-% In this case, the time complexity grows exponentially with respect to the number of mismatches. Roughly speaking, if alignment is computed for a query sequence up to a certain point, if the next characters cannot be matched, the naive solution requires checking every possible character for alignment. In worst case, this may lead to exhausting the entire reference dataset. Therefore, many heuristics have been introduced to avoid trying visiting all search paths, similar to $A^\star$ algorithm. 
-
-% While we described alignment and sketching over sequences, the framework can be transferred to de-Brujin graphs. 
-% More specifically, suppose the reference sequence is stored on a de-Brujin Graph, and we only have the naive alignment algorithm that tries all possible paths and assigns a score to them. Moreover, the sketch values are computed in such a way that if $\D(s_q,s_i)>t$ we are guaranteed to have $\HD(h_q,h_i)>t'$. Furthermore, the sketches are stored on a subset of the vertices, with another data-structure points to next available sketch. Finally, when there are multiple outgoing edges, we can use the pointers to find the next sketch and avoid paths that point to a sketch with hamming distance above $t'$.
-
-
-% For the first objective, the method is implemented and evaluated using artificially generated datasets, that mimic real genome mutations. Next, we can use a naive aligner in order to find the path with the highest alignment score. The simple aligner merely appends matching characters, and searches the space in a depth-first fashion and when there is a mismatch. The method is evaluated by replacing the query search by other sketching methods and comparing the alignment score. 
-% For the second objective, we choose an aligner that relies on a heuristic to prune wrong search paths. Therefore, sketches and their distances provide the guarantee for pruning. Finally, read to reference aligner, such as MUMmer~\cite{Marcais2018MUMmer4}, may be used as baselines.
+The only quadratic term in the time complexity is $c_2 N^2$, corresponding to the pairs of indices that are similar $k$-mers but not part of the alignment. If we exclude highly self-similar sequences, we will have $c_2 = o(N)$, which would imply a sub-quadratic overall complexity.   
 
 
 
@@ -100,75 +88,76 @@ We propose sketch-match as opposed to $k$-mer match to be used as anchors. Let $
 \end{itemize}
 
 
-\subsection{WP 3: Syntenic region finding}
-Syntenic regions are long ranges in assembled sequences, that contain multiple closely related syntenic blocks. Moreover, these blocks may be inverted, translocated, or duplicated, due to evolutionary recombination or other factors. The concrete goal of this working package to devise a locality sensitive hashing scheme, to find and align these syntenic regions. However, before we can design such a scheme, we need to formally define a syntenic region. 
+\subsection{WP 4: Syntenic region finding}
+Syntenic regions are long ranges in assembled sequences that contain multiple closely related syntenic blocks. Moreover, these blocks may be inverted, translocated, or duplicated, due to evolutionary recombination or other factors. The goal of this work package is to devise a locality sensitive hashing scheme, to find and align these syntenic regions. However, before we can design such a scheme, we need to formally define a syntenic region. 
 
-Let $K$ denote the length of syntenic region, $k$ denote the syntenic block length, and $\rho_t(x,y)$ denote the similarity between $x$ and $y$ based on their edit distance, with $t$ as similarity threshold, and $\rho_t(x,y):=\1\{\ED(x,y)\le t\}$ be the hard-thresholding operator, indicating if $x,y$ are $t$-close ($1$) or not ($0$), and let $s[i:k]:=s[i,i+1,\dots,i+k-1]$ denote the $k$-mer starting at index $i$. Moreover, let $a, b\in \abc^K$ denote two syntenic regions, and $J$ designates the set of all monotonic pairings of $k$-mers:
-\begin{equation}
-\label{eq:def_monton_pairs}
-\Align:= \Set{J\subseteq {\Ical\times \Ical}\colon \text{ if }  (i,j), (i',j')\in J,i\le i'\text{ then } j<j' }, \Ical:=\Set{1,1+k,1+2k,\dots}.
-\end{equation}
-The region score is formally defined as the maximum matching score between $a$ and $b$:
-\begin{equation}
-\label{eq:syntenic_region_score_sorted}
-R(a, b,t) =  \max_{J\in \Align}
-\sum_{(i,j)\in J}\rho_t(a[i:k], b[j:k]).
-\end{equation}
+
+Let $x\in \abc^\star, y\in \abc^\star$ be two sequences, and let blocks refer to length $k$ substrings. For similarity thresholds $0\le s_1 < s_2\le 1$, any pair of blocks $X_i:=x[i:i+k-1]$ and $Y_j:=y[j:j+k-1]$ is either $s_2$-similar, $\LCS(X_i,Y_j)\ge s_2 k$, or $s_1$-dissimilar $\LCS(X_i,Y_j)\le s_1 k$. Syntenic blocks are defined as pairs of blocks $X_i$ and $Y_j$ that are $s_2$-similar. Define bipartite graph $G$, with blocks $X_i$s and $Y_j$s as two disjoint sets, with an edge connecting the two if and only if $X_i$ and $Y_j$ form a syntenic block
+\begin{align}
+&G := (V_x\dot\cup V_y, E_{x,y}) \colon 
+\begin{cases}
+&V_x:=[|x|-k+1], \\
+&V_y:=[|y|-k+1]\\
+& E_{x,y}:=\Set{(i,j)\in V_x\times V_y: \LCS(X_i, Y_j)\ge s_2 k}, 
+\end{cases} 
+\end{align}
+where $\dot\cup$ denotes disjoint union operation. For blocks $i$ up to $i+\ell$ in $x$ and blocks $j$ up to $j+\ell$ in $y$, let $G'$ denote the subgraph of $G$ induced by these vertices. 
+\begin{align}
+&G':=\Big(V'_x\dot\cup V_y', E'_{x,y}\Big) \colon \begin{cases}
+ &V_x':=V_x\cap [i,i+\ell), \\
+ &V_y':=V_y\cap [j,j+\ell) \\
+ &E_{x,y}':= E_{x,y} \cap \big(V_x'\times V_y'\big)
+ \end{cases}
+\end{align}
+ The quadruple $(i,i+\ell, j, j+\ell)$ is a syntenic region if $G'$ has a matching that is $s'$-perfect, i.e., at least  $s' \ell$ edges will be part of the matching, where $s'\in[0,1]$ is a similarity constant. 
+
 
 \subsubsection*{Sketching the region score}
-The region score \eqref{eq:syntenic_region_score_sorted} resembles the score function in Smith-Waterman algorithm. Let $\Sk:\abc^k\to \{0,1\}^m$ denote a sketch which for optimality ratio $c>1$, similarity threshold $t$, and collision probabilities $0\le q_2<q_1\le 1$, it satisfies:
-\begin{equation}
-\label{eq:ED_HD_LSH}
-\begin{cases}
-\ED(x,y)\le t\Rightarrow \frac{\HD(h_x,h_y)}{m}\le  1-q_1\\
-\ED(x,y)\ge c t \Rightarrow \frac{\HD(h_x,h_y)}{m}\ge 1- q_2.
-\end{cases}, 
-\quad   x,y\in \abc^k, h_{\cdot}=\Sk(\cdot)
-\end{equation}
-Ideally, $q_2$ is as close to $0$ as possible, while $q_1$ is a constant larger than zero, namely $q_1>1/3$. Factor $c$ is the gap between upper and lower thresholds, which is preferably a constant close to $1$, and determines how sharp the detection is.  
-Let $x_i,y_j$ denote $k$-mers $x_i=a[i:k], y_j=b[j:k]$ with sketches $h_i,g_j$ respectively, on which we define sequences
-$H := h_1,h_{1+k},\dots,h_{K-k+1}$, and $G := g_{1},g_{1+k},\dots,g_{K-k+1}$.
-We draw $\ell$ elements from $[m]$ uniformly at random with replacement, and repeat this process $L$ times, to construct bit-index sets $I_1,\dots,I_L$. These bit-index sets, induce sub-sketch strings $H[I_j]:=h_1[I_j],\dots,h_{K-k+1}[I_j]$, and $G[I_j]:=g_1[I_j],\dots,g_{K-k+1}[I_j]$, defined for all index sets $I_1,\dots,I_L$. 
-The key idea is that the \emph{longest common subsequence (LCS)} of $H[I_j],G[I_j]\in \Set{0,1}^{\ell\star}$, is related to region score~\eqref{eq:syntenic_region_score_sorted}.
+We can employ the techniques outlined in the first package to match syntenic blocks. Subsequently, we can apply a second-level sketching, such that regions with a high percentage of syntenic blocks will remain close. Let $\Phi\colon \abc^k\to Q^b$ be a sketching from the blocks onto the $b$-dimensional binary cube $Q^b:=\Set{0,1}^b$. 
 
-% Let $J^\star$ be the minimizer of $R(a,b,t)$, with cardinality $R=|J^\star|$, and for $i\in[R]$ define $S_i:=\Set{(x,y)\in J^\star \colon h_x[i]=g_y[i]}$. We have $\sum_{i=1}^m |S_i| \le R(1-q_1)m$. Let $|S_1|,\dots, |S_m|$ be in a non-decreasing order, $|S_i|> R(1-q_1) m/(m-i)$ leads to the contradiction $\sum_{j=i+1}^m |S_j| > R(1-q_1)m$. By union bound $\Abs{\cup_{j=1}^i S_j}\le  R(1-q_1)m i/(m-i)$, it is upper bounded by $\Abs{\cup_{j=1}^i S_j}\le R(1-q_1)m^\alpha$, if we set $i=m^\alpha,\alpha<1$. If we draw $\ell$ elements from $[m]$, with $(i/m)^\ell=m^{-1+\alpha}$ probability 
+Let $A_i$ denote the set of sketches of blocks $i$ up to $i+\ell$ in $x$, let $B_j$ denote set of sketches of blocks $j$ up to $j+\ell$ in $y$
+\begin{align}
+    &A_i:=\Set{\Phi(X_i),\dots,\Phi(X_{i+\ell})},
+    &&B_j:=\Set{\Phi(Y_i),\dots,\Phi(Y_{i+\ell})}
+    % \\
+    % &p_2^2 s'\ell \le \EE_{\Phi'} |A_i\cap B_j|\le s'\ell p_2^2 + \ell^2 p_1^b 
+\end{align}
+We can use min-hashing to approximate the intersection between these sets, using random permutations $\pi_1,\dots, \pi_B$ on the hypercube 
+\begin{align}
+    &\psi_r(Z):=\min_{z\in Z} \pi_r(z)  && r\in[B], Z\in 2^{Q^b}, \pi_i\colon Q^b\to Q^b.
+\end{align}
 
-Let $\Ecal_{i,j}$ for $r\in[L]$ indicate the event $\{h_i[I_r]\neq g_j[I_r]\}$ ($1$: if it is true, $0$ otherwise), and $J^\star$ is the minimizer of $R(a,b,t)$. We have $\EE\sum_{(i,j)\in J^\star} \Ecal_{i,j} =  \Abs{J^\star}\Prob{\Ecal_{i,j}=1}$, which by property~\eqref{eq:ED_HD_LSH} is at most $R(a,b,t) {(1-q_1^\ell)}$. Therefore, by Markov's inequality we have $\Prob{\sum_{(i,j)\in J^\star} \Ecal_{i,j} \ge 4R(a,b,t) {(1-q_1^\ell)}} \le 1/4$. Let $\Ecal_{i,j}^c$ be the complement event $\Ecal_{i,j}^c:=1-\Ecal_{i,j}$, and $J^c$ be the set of $tc$-distant indices $J^c:=\Set{(i,j)\in \Ical: \ED(x_i,y_j)\ge tc}$. Using property~\eqref{eq:def_monton_pairs}, we have $\EE \sum_{(i,j)\in J^c} \Ecal_{i,j}^c \le (\frac{K}{k})^2 q_2^\ell$, and by Markov's inequality we have $\Prob{\sum_{(i,j)\in J^c} \Ecal_{i,j}^c \ge 4(\frac{K}{k})^2 q_2^\ell}\le 1/4$. Finally, combining the two by union bound, if we set $\ln(1/q_1)\lesssim\ell\lesssim \ln(1/q_2)$, and $L=\log(1/\delta)$, with failure probability $\delta$, for at least one $r\in[L]$ it holds:
-\begin{equation}
-    \label{eq:LCS_sandwitch}
- R(a,b,t)(1 - p_1) \le \LCS(H[I_r],G[I_r]) \le R(a,b,tc) + (\frac{K}{k})^2 p_2,
-\end{equation}
-in which $0<p_1,p_2<1$ are constants depending on the sketching function optimality ratio $c$, and probabilities $q_1,q_2$. Finally, since LCS similarity 2-approximates the edit distance, we can invoke the sketching function $\Sk$ on the sequences $H[I_1],\dots,H[I_L]$ and $G[I_1],\dots,G[I_L]$. Finally, if we compute componentwise Hamming distance, and report the median, the bound~\eqref{eq:LCS_sandwitch} will hold.
+Applying the ideas presented in work package 2, we can locate the syntenic regions by retrieving matches between $\psi_r(A_i)$s and $\psi_r(B_j)$s for some $r\in[B]$ and verifying if blocks the corresponding blocks form a syntenic region. We can sort the sketches lexicographically to find these matches, requiring $b B (|x|+|y|)\log(|x|+|y|)$ retrieval time. 
 
-
-In the first step, we must transform the methods outlined in this package to more concrete ones, while ensuring that they approximate the corresponding biological concepts. In order to verify that the method works as expected, we must create a synthetic sequence dataset that closely follows the assumptions and definitions. Finally, the algorithm can be applied to a real dataset and compared against other syntenic aligners.  
+We can further assume that $\Phi(a):=(\phi_i(a))_{i\in[b]}$ is $(s_1,s_2, p_1, p_2)$-sensitive, i.e., for all $ a\in \abc^k, i\in[b]$ we have
+\begin{align}
+    &\LCS(a,b)<s_1 k \implies \Prob{\phi_i(a)=\phi_i(b)} < p_1, \\
+    &\LCS(a,b)>s_2 k \implies \Prob{\phi_i(a)=\phi_i(b)} > p_2.
+\end{align}
+It suffices to set $b:=\frac{\log(\ell)}{\log(1/p_1)}$ and $B:=c \ell^\rho$ for $\rho:=\frac{\log(1/p_2)}{\log(1/p_1)}$, to ensure that $1-e^{-c}$ of syntenic blocks are a match, while at most $c \ell^{1+\rho} $ non-syntenic blocks are matched. If we assume $p_1, p_2$ and $\rho < 1$ to be constants, determining if $(i,i+\ell, j, j+\ell)$ is a syntenic region requires $\ell^{1+\rho}$ time which remains sub-quadratic in the length of the region.  
 
 
-\paragraph{Deliverables}
-\begin{itemize}
-\item An implementation of this approach, with application on simulated data, and two whole-genome references that are not very closely related. 
-\end{itemize}
 
 
-\subsection{WP 4: Multi-scale graph backbone and visualization}
+% \subsection{WP 4: Multi-scale graph backbone and visualization}
 % Given a de-Brujin graph $G=(V,E)$, informally, we want a ``simple`` sequence graph $T$, such that for sequences in $G$, there is a corresponding sequence in $T$ that approximates it. While the primary goal of constructing $T$ is visualization, it can also represent major variations in the set, or clean a graph constructed from raw reads. Hypothetically, a concatenation of all the reference sequences as a long simple chain contains all reference sequences with no error, yet offers no further insight about the sequences. This motivates us to put some constraint on the size of $T$. We proceed by proposing a possible formalization:
 
 
 % \subsubsection*{Minimum dominating set}
 % Formally, $G=(V,E)$ is the de-Brujin graph and $v\in V$ are $k$-mers, and $w(v)$ denoting the multiplicity of this $k$-mer in all our reference sequences, and for vertices $u,v\in V$, $\D(u,v)$ denotes the shortest path distance on the graph. Moreover, $\mathcal{N}(v,k)$ denotes its $k$-step neighborhood of a vertex $\mathcal{N}(v,k):=\{u\in V\colon \D(u,v)\le k\}$, which can be extended to a subset of vertices $\mathcal{N}(S,k):=\cup_{v\in S}\mathcal{N}(v,k)(v,k)$ for $S\subseteq V$. We call such a subset $(C,k)$-dominating if $\sum_{v\notin \mathcal{N}(S,k)} w(v)\le C$, and let $\mathcal{D}(C,k)$ denote all $(C,k)$-dominating sets with minimum cardinality ($|S|$ is the least possible). 
-% If $S\in \mathcal{D}(C,k)$, the sequence graph induced by $v(S)$ has $|S|k$  characters,  and sum of the minimum distance of any $k$-mer in the reference sequences to $v(S)$ is bounded by $C$. 
+% If $S\in \mathcal{D}(C,k)$, the sequence graph induced by $v(S)$ has $|S|k$ characters, and sum of the minimum distance of any $k$-mer in the reference sequences to $v(S)$ is bounded by $C$. 
 % This optimization problem is NP-hard, as it contains a minimum dominating set problem as a special case. However, it admits approximation schemes that are efficient to compute. 
 
-\subsubsection*{Sketch-based visualization}
-The sketching scheme for syntenic region score can be readily used for visualization purposes. The first step is to visualize each genome sequence as separate paths, and if a syntenic region is found in multiple genomes, they will be joint at that location and diverge afterwards. On a lower abstraction level, the aligned syntenic blocks can be illustrated by bundling corresponding genomes, which then diverge at the location of syntenic breaks (gaps). One more detailed visualization would also indicate inverted blocks, as well as translocated and duplicated. 
+% \subsubsection*{Sketch-based visualization}
+% The sketching scheme for syntenic region score can be readily used for visualization purposes. The first step is to visualize each genome sequence as separate paths, and if a syntenic region is found in multiple genomes, they will be joint at that location and diverge afterwards. On a lower abstraction level, the aligned syntenic blocks can be illustrated by bundling corresponding genomes, which then diverge at the location of syntenic breaks (gaps). One more detailed visualization would also indicate inverted blocks, as well as translocated and duplicated. 
 
-This technique can be generalized to a multi-level hierarchical scheme, with each sketch recursively computed based on the lower level sketches. The main idea is to build the de-Brujin graphs on multiple levels $k_\ell=k_0 K^\ell$, and use the sketches to collapse similar $k$-mers into a single vertex. $k_0$ is the smallest word size and $K$ determines how quickly the abstraction level grows. In order to avoid the redundancy between adjacent substrings, chosen $k_\ell$-mers are at least $k_\ell/c$-apart:
-$V_\ell:= \Set{s[i:k_\ell]\vert i\in \Ical_\ell}$, in which 
-$I_\ell:=\Set{1,1+k_\ell/c,1+2k_\ell/c,\dots}$, and $k_0$ is divisible the absolute constant $c$. The edges at level $\ell$ are pairs of $k_\ell$-mers with a $k_\ell(1-1/c)$ overlap $E_\ell:=\Set{(s[i:k_\ell],s[i+k_\ell/c:k_\ell]): i\in I_\ell}$. Moreover, let us assume that sketching functions $\Sk\colon \abc^{k_\ell}\to  \Set{0,1}^m$ for all valid levels $\ell$, such that $\Sk(s[i:k_{\ell+1}])$ can be computed recursively using lower level sketches $\Sk(s[i:k_{\ell}])$. Furthermore, similarity edges $S_\ell$ are defined based on threshold $t$ for Hamming distance of sketches $S_\ell:=\Set{(u,v)\colon \HD(\Sk(u),\Sk(v))/m\le t}$. 
-For the level $\ell$ de-Brujin graph $G_\ell:=(V_\ell,E_\ell)$, we construct backbone $T_\ell$ by copying $G_\ell$, and then contracting all similarity edges $S_\ell$ (contraction of edge $(u,v)$, removes $u$ and $v$ and creates $w$, and connects all incoming and outgoing edges to $w$). Since every $k_\ell$-mer can be uniquely mapped to a $k_{\ell+1}$-mer as its parent, vertices in $T_{\ell}$ can also be mapped to their parents in $T_{\ell+1}$. This hierarchical construction can be beneficial for characterization of genome differences, as well as multi-scale vizualization of multiple genomes. 
+% This technique can be generalized to a multi-level hierarchical scheme, with each sketch recursively computed based on the lower level sketches. The main idea is to build the de-Brujin graphs on multiple levels $k_\ell=k_0 K^\ell$, and use the sketches to collapse similar $k$-mers into a single vertex. $k_0$ is the smallest word size and $K$ determines how quickly the abstraction level grows. In order to avoid the redundancy between adjacent substrings, chosen $k_\ell$-mers are at least $k_\ell/c$-apart:
+% $V_\ell:= \Set{s[i:k_\ell]\vert i\in \Ical_\ell}$, in which 
+% $I_\ell:=\Set{1,1+k_\ell/c,1+2k_\ell/c,\dots}$, and $k_0$ is divisible the absolute constant $c$. The edges at level $\ell$ are pairs of $k_\ell$-mers with a $k_\ell(1-1/c)$ overlap $E_\ell:=\Set{(s[i:k_\ell],s[i+k_\ell/c:k_\ell]): i\in I_\ell}$. Moreover, let us assume that sketching functions $\Sk\colon \abc^{k_\ell}\to \Set{0,1}^m$ for all valid levels $\ell$, such that $\Sk(s[i:k_{\ell+1}])$ can be computed recursively using lower level sketches $\Sk(s[i:k_{\ell}])$. Furthermore, similarity edges $S_\ell$ are defined based on threshold $t$ for Hamming distance of sketches $S_\ell:=\Set{(u,v)\colon \HD(\Sk(u),\Sk(v))/m\le t}$. 
+% For the level $\ell$ de-Brujin graph $G_\ell:=(V_\ell,E_\ell)$, we construct backbone $T_\ell$ by copying $G_\ell$, and then contracting all similarity edges $S_\ell$ (contraction of edge $(u,v)$, removes $u$ and $v$ and creates $w$, and connects all incoming and outgoing edges to $w$). Since every $k_\ell$-mer can be uniquely mapped to a $k_{\ell+1}$-mer as its parent, vertices in $T_{\ell}$ can also be mapped to their parents in $T_{\ell+1}$. This hierarchical construction can be beneficial for characterization of genome differences, as well as multi-scale vizualization of multiple genomes. 
 
 
-In terms of organizational goals, visualizing syntenic blocks and regions, with the possibility to show multiple genomes at the same time, is the only concrete objective in this package. However, the hierarchical sketching and visualization are exploratory goals, and the objective may evolve during development and experiments. 
+% In terms of organizational goals, visualizing syntenic blocks and regions, with the possibility to show multiple genomes at the same time, is the only concrete objective in this package. However, the hierarchical sketching and visualization are exploratory goals, and the objective may evolve during development and experiments. 
 
 
 % More formally, for the reference sequence $s$, $V(k)$ denotes the set of $k$-mers $V(k):= \Set{s[i:k]\vert i\in \Ical_k}$, starting at indices $I(k):=\Set{1,1+k/c,1+2k/c,\dots}$, in which $c$ is an absolute constant determining maximum overlap $k/c$. The edge set $E_k$ is comprised of adjacent $k$-mers $E(k):=\Set{(s[i:k],s[i+k/c:k])\vert i\in I_k}$. Let $V(k_\ell),E(k_\ell)$ denote abstraction level $\ell$ vertices and edges for scale $k_\ell=C^\ell$, in which $C$ is an absolute constant. Moreover, let $\Sk(v)\in\Set{0,1}^m$ denote a sketch function, that can be computed for all levels $v\in V(k_\ell)$, allows recursive computation of $\Sk(v)\in V(k_{\ell+1})$ based on $\Sk(v)\in V(k_\ell)$. Similarity edges $S(k_\ell)$ are defined using $t$ as similarity threshold $S(k_\ell):=\Set{(u,v)\colon \HD(\Sk(u),\Sk(v))/m\le t}$. Finally, if $G_\ell=(V(k_\ell),E(k_\ell))$ denotes the de-Brujin graph at level $\ell$, and backbone graph $T_\ell$ is defined by contraction of all similarity edges on $G_\ell$ (contraction of edge $(u,v)$, removes $u$ and $v$ and creates $w$, and redirects all incoming and outgoing edges towards $w$).
@@ -177,8 +166,8 @@ In terms of organizational goals, visualizing syntenic blocks and regions, with 
 % For example, let $h_i:=\Sk(s[5i+1:10]), h_i\in\Set{0,1}^m$ denote the sketches for $10$-mers of the reference sequence $s$. Consequently, the sketch for $s[1:100]$ is recursively computed on sequence $h_0[I],\dots,h_{19}[I]$, and repeated with \iid subsampled index set $I\subseteq[m]$. The desired number of scales for visualization can be tuned by choosing the cardinality of sub-index set $|I|$, recursion factor, and overlap factor.~\footnote{recursion factor $C$ means $k$-mer sketches are computed based on $k/C$-mer sketches. Overlap factor $C$ means only for $k$-mers at indices $1,1+\floor{k/C},1+\floor{2k/C},\dots$ the sketches are computed.}.
 % \subsubsection*{Random walk, leverage scores }
 % Similar to before, let $V$ denote the set of all $k$-mers in our dataset. However, for any two 
-% The sketching scheme outlined to find syntenic regions, can be used to add extra edges to sequence graph, indicating  
-% In the same setting for $G$, plus a root node $r\in V$ that can reach all other nodes, we compute random spanning trees: starting from $r$ take out-going edges at random, in a breadth-first fashion to construct tree $T_1$, and repeat this $\ell$ times. For each node $v$, let the score  $s_i(v)$ corresponding to $T_i$ is defined the number of its descendants, the overall score is defined as the sum $s(v):=\sum_i s_i(v)$. Finally, we find the subset $S\subseteq V$, such that $G[S]$ is connected and $\sum_{v\in S} w(v)s(v)$ is maximized. The rationale behind this is that, $s(v)$ is correlated with the length of a random-walk initiated at $v$. 
+% The sketching scheme outlined to find syntenic regions, can be used to add extra edges to sequence graph, indicating 
+% In the same setting for $G$, plus a root node $r\in V$ that can reach all other nodes, we compute random spanning trees: starting from $r$ take out-going edges at random, in a breadth-first fashion to construct tree $T_1$, and repeat this $\ell$ times. For each node $v$, let the score $s_i(v)$ corresponding to $T_i$ is defined the number of its descendants, the overall score is defined as the sum $s(v):=\sum_i s_i(v)$. Finally, we find the subset $S\subseteq V$, such that $G[S]$ is connected and $\sum_{v\in S} w(v)s(v)$ is maximized. The rationale behind this is that, $s(v)$ is correlated with the length of a random-walk initiated at $v$. 
 
 
 
@@ -188,7 +177,11 @@ In terms of organizational goals, visualizing syntenic blocks and regions, with 
 
 \paragraph{Deliverables}
 \begin{itemize}
-\item A visualization algorithm and a publication, for visualization of multiple reference genomes on different abstraction scale.
+% \item A visualization algorithm and a publication, for visualization of multiple reference genomes on different abstraction scale.
+% \end{itemize}
+% \paragraph{Deliverables}
+% \begin{itemize}
+\item A manuscript and an implementation of this approach, with application on simulated data, and two whole-genome references that are not very closely related. 
 \end{itemize}
 
 % \subsection{Sketch-based optimization}
@@ -208,11 +201,11 @@ In terms of organizational goals, visualizing syntenic blocks and regions, with 
 % %% Text goes here... lots of text.
 
 % %% \begin{figure}[ht]
-% %%   \centering
-% %% 	\subfloat[]{\includegraphics[width=.49\linewidth]{figures/neural-network.pdf}\label{fig:nnA}}  \hfill
+% %% \centering
+% %% 	\subfloat[]{\includegraphics[width=.49\linewidth]{figures/neural-network.pdf}\label{fig:nnA}} \hfill
 % %% 	\subfloat[]{\includegraphics[width=.49\linewidth]{figures/neural-network.pdf}\label{fig:nnB}} \\
 % %% \caption{\textbf{A.} A neural network. \textbf{B.} The same neural network.}
-% %%   \label{fig:universes}
+% %% \label{fig:universes}
 % %% \end{figure}
 
 % %% \subsection{WP N: Writing the Dissertation}
@@ -248,19 +241,19 @@ In terms of organizational goals, visualizing syntenic blocks and regions, with 
 % %% Since all the datasets used in the proposed research are collected from ICU, the data sampling rate usually ranges from every few minutes to once a few days.
 % %% Table \ref{tbl:data} summarizes some basic information of these three datasets.
 % %% \begin{table}[!ht]
-% %%   \caption{Summary of the three ICU datasets we will use in the proposal.}
-% %%   {\footnotesize
-% %%   \begin{tabular}{p{0.225\textwidth} p{0.225\textwidth} p{0.225\textwidth} p{0.225\textwidth}}
-% %%     \midrule
-% %%     ~ & \textbf{MIMIC-III} & \textbf{Phillips eICU} & \textbf{University Hospital Bern} \\ \midrule
-% %%     \textbf{No. of patients} & 46,520 & 139,367 & 55,476 \\ \midrule
-% %%     \textbf{No. of variables} & 13,240 & 2,905 & 5,178 \\ \midrule
-% %%     \textbf{No. of measurements} & $\approx 312\times10^6$ & $\approx 827\times10^6$ & $\approx 3,469\times10^6$ \\ \midrule
-% %%     \textbf{Highest resolution} & $\approx 15$ minutes & $\approx 5$ minutes & $\approx 2$ minutes \\ \midrule
-% %%     \textbf{Time range} & 2001 to 2012 & 2014 to 2015 & since 2005 \\ \midrule
-% %%     \textbf{Demographics} & Patients at Beth Israel Deaconess Medical Centre (Boston, USA) & Patients from 459 critical care units across continental USA & Patients at University Hospital Bern (Switzerland) \\ \midrule
-% %%   \end{tabular}}
-% %%   \label{tbl:data}
+% %% \caption{Summary of the three ICU datasets we will use in the proposal.}
+% %% {\footnotesize
+% %% \begin{tabular}{p{0.225\textwidth} p{0.225\textwidth} p{0.225\textwidth} p{0.225\textwidth}}
+% %% \midrule
+% %% ~ & \textbf{MIMIC-III} & \textbf{Phillips eICU} & \textbf{University Hospital Bern} \\ \midrule
+% %% \textbf{No. of patients} & 46,520 & 139,367 & 55,476 \\ \midrule
+% %% \textbf{No. of variables} & 13,240 & 2,905 & 5,178 \\ \midrule
+% %% \textbf{No. of measurements} & $\approx 312\times10^6$ & $\approx 827\times10^6$ & $\approx 3,469\times10^6$ \\ \midrule
+% %% \textbf{Highest resolution} & $\approx 15$ minutes & $\approx 5$ minutes & $\approx 2$ minutes \\ \midrule
+% %% \textbf{Time range} & 2001 to 2012 & 2014 to 2015 & since 2005 \\ \midrule
+% %% \textbf{Demographics} & Patients at Beth Israel Deaconess Medical Centre (Boston, USA) & Patients from 459 critical care units across continental USA & Patients at University Hospital Bern (Switzerland) \\ \midrule
+% %% \end{tabular}}
+% %% \label{tbl:data}
 % %% \end{table}
 
 % %% While acquiring access to these ICU datasets is not difficult, the data do not come in a format that can be directly used by the proposed algorithms, so preprocessing the data into the desired format is an important task in this phase.
