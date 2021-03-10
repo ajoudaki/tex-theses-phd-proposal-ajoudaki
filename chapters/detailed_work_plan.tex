@@ -129,10 +129,10 @@ We can use min-hashing to approximate the intersection between these sets, using
 
 Applying the ideas presented in work package 2, we can locate the syntenic regions by retrieving matches between $\psi_r(A_i)$s and $\psi_r(B_j)$s for some $r\in[B]$ and verifying if blocks the corresponding blocks form a syntenic region. We can sort the sketches lexicographically to find these matches, requiring $b B (|x|+|y|)\log(|x|+|y|)$ retrieval time. 
 
-We can further assume that $\Phi(a):=(\phi_i(a))_{i\in[b]}$ is $(s_1,s_2, p_1, p_2)$-sensitive, i.e., for all $ a\in \abc^k, i\in[b]$ we have
+We can further assume that $\Phi(a):=(\phi_i(a))_{i\in[b]}$ is $(s_1,s_2, p_1, p_2)$-sensitive, i.e., for all $ X_i,Y_j\in \abc^k, r\in[b]$ we have
 \begin{align}
-    &\LCS(a,b)<s_1 k \implies \Prob{\phi_i(a)=\phi_i(b)} < p_1, \\
-    &\LCS(a,b)>s_2 k \implies \Prob{\phi_i(a)=\phi_i(b)} > p_2.
+    &\LCS(X_i,Y_j)<s_1 k \implies \Prob{\phi_i(X_i)=\phi_i(Y_j)} < p_1, \\
+    &\LCS(X_i,Y_j)>s_2 k \implies \Prob{\phi_i(X_i)=\phi_i(Y_j)} > p_2.
 \end{align}
 It suffices to set $b:=\frac{\log(\ell)}{\log(1/p_1)}$ and $B:=c \ell^\rho$ for $\rho:=\frac{\log(1/p_2)}{\log(1/p_1)}$, to ensure that $1-e^{-c}$ of syntenic blocks are a match, while at most $c \ell^{1+\rho} $ non-syntenic blocks are matched. If we assume $p_1, p_2$ and $\rho < 1$ to be constants, determining if $(i,i+\ell, j, j+\ell)$ is a syntenic region requires $\ell^{1+\rho}$ time which remains sub-quadratic in the length of the region.  
 
