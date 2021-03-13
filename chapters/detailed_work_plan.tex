@@ -2,7 +2,7 @@
 
 \subsection{WP1: sequence similarity sketching}
 In this package, the main objective is to design a randomized sketching that maps the sequences onto Euclidean space. 
-The sketching function $\Phi\colon \abc^\star\to \RR^m$ is $(s_1,t_1, s_2, t_2)$-sensitive, if there exists similarity constants $0<s_1 < s_2<1$ and $t_1 < t_2$, and probabilities $c_1,c_2\in[0,1]$, such that for any two sequences $x,y\in\abc^\star$ it holds 
+The sketching function $\Phi\colon \abc^\star\to \RR^m$ is $(s_1,s_2, t_1,t_2)$-sensitive, if there exists similarity constants $0<s_1 < s_2<1$ and $t_1 < t_2$, and probabilities $c_1,c_2\in[0,1]$, such that for any two sequences $x,y\in\abc^\star$ it holds 
 \begin{align}
 \label{eq:sk_approx_factor}
 \Prob{\ip{\Phi(x)}{\Phi(y)} > t_1 }\le c_1, && \text{if } \frac{\LCS(x,y)}{\max(|x|,|y|)}< s_1  \\
@@ -92,25 +92,31 @@ The only quadratic term in the time complexity is $c_2 N^2$, corresponding to th
 Syntenic regions are long ranges in assembled sequences that contain multiple closely related syntenic blocks. Moreover, these blocks may be inverted, translocated, or duplicated, due to evolutionary recombination or other factors. The goal of this work package is to devise a locality sensitive hashing scheme, to find and align these syntenic regions. However, before we can design such a scheme, we need to formally define a syntenic region. 
 
 
-Let $x\in \abc^\star, y\in \abc^\star$ be two sequences, and let blocks refer to length $k$ substrings. For similarity thresholds $0\le s_1 < s_2\le 1$, any pair of blocks $X_i:=x[i:i+k-1]$ and $Y_j:=y[j:j+k-1]$ is either $s_2$-similar, $\LCS(X_i,Y_j)\ge s_2 k$, or $s_1$-dissimilar $\LCS(X_i,Y_j)\le s_1 k$. Syntenic blocks are defined as pairs of blocks $X_i$ and $Y_j$ that are $s_2$-similar. Define bipartite graph $G$, with blocks $X_i$s and $Y_j$s as two disjoint sets, with an edge connecting the two if and only if $X_i$ and $Y_j$ form a syntenic block
-\begin{align}
-&G := (V_x\dot\cup V_y, E_{x,y}) \colon 
-\begin{cases}
-&V_x:=[|x|-k+1], \\
-&V_y:=[|y|-k+1]\\
-& E_{x,y}:= \set{(i,j)\in V_x\times V_y: \LCS(X_i, Y_j)\ge s_2 k}, 
-\end{cases} 
-\end{align}
-where $\dot\cup$ denotes disjoint union operation. For blocks $i$ up to $i+\ell$ in $x$ and blocks $j$ up to $j+\ell$ in $y$, let $G'$ denote the subgraph of $G$ induced by these vertices. 
-\begin{align}
-&G':=\Big(V'_x\dot\cup V_y', E'_{x,y}\Big) \colon \begin{cases}
- &V_x':=V_x\cap [i,i+\ell), \\
- &V_y':=V_y\cap [j,j+\ell) \\
- &E_{x,y}':= E_{x,y} \cap \big(V_x'\times V_y'\big)
- \end{cases}
-\end{align}
- The quadruple $(i,i+\ell, j, j+\ell)$ is a syntenic region if $G'$ has a matching that is $s'$-perfect, i.e., at least  $s' \ell$ edges will be part of the matching, where $s'\in[0,1]$ is a similarity constant. 
+Let $x\in \abc^\star, y\in \abc^\star$ be two sequences, and let blocks refer to length $k$ substrings. For similarity thresholds $0\le s_1 < s_2\le 1$, any pair of blocks $X_i:=x[i:i+k-1]$ and $Y_j:=y[j:j+k-1]$ is either $s_2$-similar, $\LCS(X_i,Y_j)\ge s_2 k$, or $s_1$-dissimilar $\LCS(X_i,Y_j)\le s_1 k$. Syntenic blocks are defined as pairs of blocks $X_i$ and $Y_j$ that are $s_2$-similar. 
 
+% Define bipartite graph $G$, with blocks $X_i$s and $Y_j$s as two disjoint sets, with an edge connecting the two if and only if $X_i$ and $Y_j$ form a syntenic block
+% \begin{align}
+% &G := (V_x\dot\cup V_y, E_{x,y}) \colon 
+% \begin{cases}
+% &V_x:=[|x|-k+1], \\
+% &V_y:=[|y|-k+1]\\
+% & E_{x,y}:= \set{(i,j)\in V_x\times V_y: \LCS(X_i, Y_j)\ge s_2 k}, 
+% \end{cases} 
+% \end{align}
+% where $\dot\cup$ denotes disjoint union operation. 
+% For blocks $i$ up to $i+\ell$ in $x$ and blocks $j$ up to $j+\ell$ in $y$, let $G'$ denote the subgraph of $G$ induced by these vertices. 
+% \begin{align}
+% &G':=\Big(V'_x\dot\cup V_y', E'_{x,y}\Big) \colon \begin{cases}
+%  &V_x':=V_x\cap [i,i+\ell), \\
+%  &V_y':=V_y\cap [j,j+\ell) \\
+%  &E_{x,y}':= E_{x,y} \cap \big(V_x'\times V_y'\big)
+%  \end{cases}
+% \end{align}
+%  The quadruple $(i,i+\ell, j, j+\ell)$ is a syntenic region if $G'$ has a matching that is $s'$-perfect, i.e., at least  $s' \ell$ edges will be part of the matching, where $s'\in[0,1]$ is a similarity constant. 
+Define the syntenic region score between blocks $\set{X_i,\dots, X_{i+\ell}}$ and $\set{Y_j,\dots, Y_{j+\ell}}$ as the highest number of syntenic blocks in a perfect matching, i.e., the bijection $\sigma\colon [i,i+\ell]\to [j,j+\ell]$ with the highest score
+ \begin{align}
+     \max_{\sigma}\Big|\set{r\in [i,i+\ell]\colon \LCS(X_r,Y_{\sigma(r)})\ge s_2 k} \Big|
+ \end{align}
 
 \subsubsection*{Sketching the region score}
 We can employ the techniques outlined in the first package to match syntenic blocks. Subsequently, we can apply a second-level sketching, such that regions with a high percentage of syntenic blocks will remain close. Let $\Phi\colon \abc^k\to Q^b$ be a sketching from the blocks onto the $b$-dimensional binary cube $Q^b:= \set{0,1}^b$. 
