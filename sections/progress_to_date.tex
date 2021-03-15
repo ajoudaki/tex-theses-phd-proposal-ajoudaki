@@ -9,6 +9,5 @@ My contributions were developing and analysis of tensor sketching, tensor slide 
 
 
 \subsection{WP 2: Phylogeny reconstruction}
-In order to assess utility of the the sketching framework for phylogeny reconstruction, the distance matrix of virus genomes is currently approximated based on the sketches, and compared to the exact distances based on the edit distance, and the performance of method is compared against MASH. 
-
-My contributions have been devising the ideas for sub-quadratic clustering, and coming up with the experimental setup and evaluation metrics for this task. Furthermore, I have added parallelism and other optimizations to the main implementations in order to reduce the running time of the experiments. 
+In the current experiments, the alignment distance and sketch-based distance are computed between each pair of 10 thousand viruses genomes, resulting in the exact and approximate distance matrices. Then, a hierarchical clustering algorithm, namely UPGMA, is used to construct the tree from these distance matrices. In order to assess utility of the sketching framework for phylogeny tree reconstruction, the sketch-based tree is evaluated based on the alignment-based tree. Finally, the performance of tensor sketching is compared with MASH with regard to time and accuracy. 
+My contributions have been devising the ideas for sub-quadratic clustering, and coming up with the experimental setup and evaluation metrics for this task. Furthermore, I have added parallelism and other optimizations to the main implementations in order to reduce the running time of the experiments.
