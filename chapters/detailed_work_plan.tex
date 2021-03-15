@@ -113,34 +113,32 @@ Let $x\in \abc^\star, y\in \abc^\star$ be two sequences, and let blocks refer to
 %  \end{cases}
 % \end{align}
 %  The quadruple $(i,i+\ell, j, j+\ell)$ is a syntenic region if $G'$ has a matching that is $s'$-perfect, i.e., at least  $s' \ell$ edges will be part of the matching, where $s'\in[0,1]$ is a similarity constant. 
-Define the syntenic region score between blocks $\set{X_i,\dots, X_{i+\ell}}$ and $\set{Y_j,\dots, Y_{j+\ell}}$ as the highest number of syntenic blocks in a perfect matching, i.e., the bijection $\sigma\colon [i,i+\ell]\to [j,j+\ell]$ with the highest score
+For $i,i'\in[|x|-k+1], j,j'\in[|y|-k+1]$ where $i\le i'$ and $j\le j'$, define syntenic region score, as the maximum number of syntenic blocks between $\set{X_i,\dots, X_{i'}}$ and $\set{Y_j,\dots, Y_{j'}}$
  \begin{align}
-     \max_{\sigma}\Big|\set{r\in [i,i+\ell]\colon \LCS(X_r,Y_{\sigma(r)})\ge s_2 k} \Big|
+    \max_{\sigma\colon [i:i']\to[j:j']}\Big|\set{r\in [i:i']\colon \LCS(X_r,Y_{\sigma(r)})\ge s_2 k} \Big|
  \end{align}
-
-\subsubsection*{Sketching the region score}
-We can employ the techniques outlined in the first package to match syntenic blocks. Subsequently, we can apply a second-level sketching, such that regions with a high percentage of syntenic blocks will remain close. Let $\Phi\colon \abc^k\to Q^b$ be a sketching from the blocks onto the $b$-dimensional binary cube $Q^b:= \set{0,1}^b$. 
-
-Let $A_i$ denote the set of sketches of blocks $i$ up to $i+\ell$ in $x$, let $B_j$ denote set of sketches of blocks $j$ up to $j+\ell$ in $y$
-\begin{align}
-    &A_i:= \set{\Phi(X_i),\dots,\Phi(X_{i+\ell})},
-    &&B_j:= \set{\Phi(Y_i),\dots,\Phi(Y_{i+\ell})}
-    % \\
-    % &p_2^2 s'\ell \le \EE_{\Phi'} |A_i\cap B_j|\le s'\ell p_2^2 + \ell^2 p_1^b 
-\end{align}
-We can use min-hashing to approximate the intersection between these sets, using random permutations $\pi_1,\dots, \pi_B$ on the hypercube 
-\begin{align}
-    &\psi_r(Z):=\min_{z\in Z} \pi_r(z)  && r\in[B], Z\in 2^{Q^b}, \pi_i\colon Q^b\to Q^b.
-\end{align}
-
-Applying the ideas presented in work package 2, we can locate the syntenic regions by retrieving matches between $\psi_r(A_i)$s and $\psi_r(B_j)$s for some $r\in[B]$ and verifying if blocks the corresponding blocks form a syntenic region. We can sort the sketches lexicographically to find these matches, requiring $b B (|x|+|y|)\log(|x|+|y|)$ retrieval time. 
-
-We can further assume that $\Phi(a):=(\phi_i(a))_{i\in[b]}$ is $(s_1,s_2, p_1, p_2)$-sensitive, i.e., for all $ X_i,Y_j\in \abc^k, r\in[b]$ we have
+where the maximization is taken over all injections from $\set{i,i+1,\dots, i'}$ to $\set{j,j+1,\dots, j'}$. 
+\subsubsection*{Sketching the syntenic region score}
+In this section, we focus on finding regions with fixed length $i'=i+\ell-1, j'=j+\ell-1$.  
+We can employ the techniques outlined in the first package to match syntenic blocks. Subsequently, we can apply a second-level sketching. Therefore regions with a high percentage of syntenic blocks will remain close. Let $\Phi\colon \abc^k\to \set{0,1}^b$ be a $(s_1,s_2, p_1, p_2)$-sensitive sketching for blocks
 \begin{align}
     &\LCS(X_i,Y_j)<s_1 k \implies \Prob{\phi_i(X_i)=\phi_i(Y_j)} < p_1, \\
     &\LCS(X_i,Y_j)>s_2 k \implies \Prob{\phi_i(X_i)=\phi_i(Y_j)} > p_2.
 \end{align}
+Let $\Xcal_i:=\Phi(X_i)$ and $\Ycal_j:=\Phi(Y_j)$ denote the set of sketches of blocks $X_i$ and $Y_j$, and define 
+$\Scal_X:=\set{X_i,\dots,\Xcal_{i+\ell}}$ and $\Scal_Y:=\set{\Ycal_j, \dots, \Ycal_{j+\ell}}$ as the set of sketches within this region. 
+% \begin{align}
+%     &\Xcal_i:= \set{\Phi(X_i),\dots,\Phi(X_{i+\ell-1})},
+%     &&\Ycal_j:= \set{\Phi(Y_i),\dots,\Phi(Y_{i+\ell-1})}.
+% \end{align}
+Let $\psi\colon (\set{0,1}^b)^\ell\to\set{0,1}^b$ be a min-hash sketch, using random permutation $\pi\colon\set{0,1}^b\to\set{0,1}^b$
+\begin{align}
+    &\psi(\set{h_1,\dots,h_\ell}):=\min_{i\in[\ell]} \pi(h_i)  && h_1,\dots, h_\ell\in \set{0,1}^b, \pi\colon \set{0,1}^b\to \set{0,1}^b.
+\end{align}
+The collision probability between $\psi(\Scal_X)$ and $\psi(\Scal_Y)$ is equal to $\frac{\alpha}{2-\alpha}$, where $\alpha$ is the normalized intersection $\alpha:=|\Scal_X\cap \Scal_Y|/\ell$. We can repeat this process $B$ times to improve sensitivity. 
+
 It suffices to set $b:=\frac{\log(\ell)}{\log(1/p_1)}$ and $B:=c \ell^\rho$ for $\rho:=\frac{\log(1/p_2)}{\log(1/p_1)}$, to ensure that $1-e^{-c}$ of syntenic blocks are a match, while at most $c \ell^{1+\rho} $ non-syntenic blocks are matched. If we assume $p_1, p_2$ and $\rho < 1$ to be constants, determining if $(i,i+\ell, j, j+\ell)$ is a syntenic region requires $\ell^{1+\rho}$ time which remains sub-quadratic in the length of the region.  
+% Finally, can retrieve matches between sketches by storing them in a hash table in $b B (|x|+|y|)\log(|x|+|y|)$ time, enabling us to retrieve syntenic regions with a high score in a quasi-linear time.
 
 
 
