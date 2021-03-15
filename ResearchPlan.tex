@@ -47,16 +47,13 @@
 \usepackage[retainorgcmds]{IEEEtrantools}
 
 %% [CUSTOM LW] Subfloats
-\usepackage{subfig} % for subfigures
-\usepackage{caption}
+\usepackage{subfig, caption}
+\usepackage{graphicx}
+\usepackage{pgfgantt}
+\usepackage{amsmath, amsthm, amssymb, mathrsfs}
+\usepackage{dsfont}
+\usepackage{url} 
 
-%% [CUSTOM LW] Bold Math
-\usepackage{bm}
-
-%% [CUSTOM LW] Long Tables
-\usepackage{booktabs}
-\usepackage{longtable}
-\usepackage{tabu}
 
 %% [REC] Fancy character protrusion.  Must be loaded after all fonts.
 \usepackage{microtype}
@@ -93,32 +90,37 @@
 \input{titlePage}
 
 \section{Summary\onlyIfMaxPages{ (max. 1/2 page)}}
-\input{chapters/summary}
+\input{sections/summary}
 
 \onlyIfMaxPages{\pagebreak}
 \section{Introduction\onlyIfMaxPages{ (min. 1/2 page)}}
-\input{chapters/introduction}
+\input{sections/introduction}
 
 \onlyIfMaxPages{\pagebreak}
 \section{State of the Art\onlyIfMaxPages{ (min. 1 page)}}
-\input{chapters/state_of_the_art}
+\input{sections/state_of_the_art}
 
 \onlyIfMaxPages{\pagebreak}
 \pagebreak
 \section{Goals of the Thesis\onlyIfMaxPages{ (min. 1 page)}}\label{sec:goal_of_thesis}
-\input{chapters/goal_of_thesis}
+\input{sections/goal_of_thesis}
 
 \onlyIfMaxPages{\pagebreak}
 \section{Detailed Work Plan\onlyIfMaxPages{ (min. 1/2 page)}}
-\input{chapters/detailed_work_plan}\label{sec:detailed_work_plan}
+\input{sections/detailed_work_plan}\label{sec:detailed_work_plan}
 
 \onlyIfMaxPages{\pagebreak}
 \section{Progress to Date\onlyIfMaxPages{ (min. 1/4 page)}}
-\input{chapters/progress_to_date}
+\input{sections/progress_to_date}
+
+
+\onlyIfMaxPages{\pagebreak}
+\section{Tentative Schedule\onlyIfMaxPages{ (min. 1/4 page)}}
+\input{sections/schedule}
 
 % \onlyIfMaxPages{\pagebreak}
 % \section{Schedule\onlyIfMaxPages{ (min. 1/4 page)}}
-% \input{chapters/schedule}
+% \input{sections/schedule}
 
 \pagebreak
 \section{References\onlyIfMaxPages{ (max. 1 page)}}
@@ -130,7 +132,7 @@
 
 \pagebreak
 \section{Study Plan}
-\input{chapters/study_plan}
+\input{sections/study_plan}
 
 \section*{}
 

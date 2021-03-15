@@ -1,0 +1,46 @@
+
+The research schedule for three years is presented in Figure \ref{fig:timeSchedule}.
+It comprises the six work packages previously discussed.
+\begin{figure}[h]
+  \centering
+  \noindent\resizebox{\textwidth}{!}{
+  \begin{tikzpicture}
+ \begin{ganttchart}[
+complete/.style={fill=gray!50},
+incomplete/.style={fill=white},
+ y unit title=0.5cm,
+ y unit chart=0.7cm,
+ vgrid,hgrid,
+ title height=1,
+ ]{1}{33}
+%labels
+\gantttitle[]{2019}{6}                 % title 2
+\gantttitle[]{2021}{12}             % title 2
+\gantttitle[]{2022}{12}             % title 2
+\gantttitle[]{2023}{3} \\              
+\gantttitle{Q3}{3}                    
+\gantttitle{Q4}{3}                      % title 3
+\gantttitle{Q1}{3}
+\gantttitle{Q2}{3}
+\gantttitle{Q3}{3}
+\gantttitle{Q4}{3}
+\gantttitle{Q1}{3}
+\gantttitle{Q2}{3} 
+\gantttitle{Q3}{3} 
+\gantttitle{Q4}{3} 
+\gantttitle{Q1}{3} \\
+
+\ganttbar[progress=100,inline=false]{WP 1}{1}{9}\\
+
+% \ganttgroup[inline=false]{Group 3}{13}{24} \\ 
+\ganttbar[progress=30,inline=false]{WP 2}{7}{18} \\ 
+\ganttbar[progress=0,inline=false]{WP 3}{12}{24}\\ 
+\ganttbar[progress=0,inline=false]{WP 4}{18}{26} \\ 
+% \ganttbar[progress=0,inline=false]{Thesis}{20}{27} \\ 
+    \ganttbar[progress=0,inline=false, bar progress label node/.append style={below left= 10pt and 7pt}]{Thesis}{27}{33} \\ 
+\end{ganttchart}
+\end{tikzpicture}
+}
+	\caption{Research Plan for 3 years.} 
+  \label{fig:timeSchedule}
+\end{figure}
